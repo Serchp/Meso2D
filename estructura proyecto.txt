@@ -1,0 +1,6 @@
+semilla
+[x,y]
+{tabla_dosificación}
+[Dmin_poro, Dmax_poro, %poro]
+[Dmin_arido, Dmax_arido, %arido]
+[Dmin_pasta, Dmax_pasta, %pasta][
