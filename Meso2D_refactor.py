@@ -16,6 +16,7 @@ from Main03 import Ui_MainWindow
 from Main_inicio import Ui_MainWindow as Menuinicio
 from GV import MiGraphicsView
 # from Worker import WorkerTodos
+from worker_base import SimParams
 from Worker_clusters import WorkerTodos
 from Worker_elipses import WorkerElipses
 from Worker_poligonos import WorkerPoligonos
@@ -494,6 +495,26 @@ class mainProgram(QMainWindow, Ui_MainWindow):
             self.simular()
 
     def simular(self):
+
+        params = SimParams(
+            sieve_size=self.sieve_size,
+            tpp=self.tpp,
+            x=self.x,
+            y=self.y,
+            Pagg=self.Pagg,
+            Pporos=self.Pporos,
+            dporo_min=self.dporo_min,
+            dporo_max=self.dporo_max,
+            r_react=self.r_react,
+            dpto_max_aridos=self.dpto_max_aridos,
+            dpto_min_aridos=self.dpto_min_aridos,
+            dpto_max_pasta=self.dpto_max_pasta,
+            dpto_min_pasta=self.dpto_min_pasta,
+            Ppto_react_aridos=self.Ppto_react_aridos,
+            Ppto_react_pasta=self.Ppto_react_pasta,
+            seed=self.seed
+        )
+
         if self.cb_semilla.isChecked():
             np.random.seed(self.seed)
         else:
@@ -528,31 +549,43 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.pb_stop.setEnabled(True)
 
         self.thread = QThread()
-        if self.modo == 'circulos':
-            self.worker = WorkerTodos(self.sieve_size, self.tpp, self.x, self.y, self.Pagg, self.Pporos, self.dporo_min,
-                                     self.dporo_max, self.r_react, self.dpto_max_aridos, self.dpto_min_aridos,
-                                     self.dpto_max_pasta, self.dpto_min_pasta, self.Ppto_react_aridos,
-                                     self.Ppto_react_pasta, self.seed, self.todo_correcto, self.check_poros,
-                                     self.check_puntos, self.check_puntos_aridos, self.check_puntos_pasta)
-        elif self.modo == 'elipses':
-            self.worker = WorkerElipses(self.sieve_size, self.tpp, self.x, self.y, self.Pagg, self.Pporos, self.dporo_min,
-            # self.worker = WorkerPoligonos(self.sieve_size, self.tpp, self.x, self.y, self.Pagg, self.Pporos, self.dporo_min,
-                                      self.dporo_max, self.r_react, self.dpto_max_aridos, self.dpto_min_aridos,
-                                      self.dpto_max_pasta, self.dpto_min_pasta, self.Ppto_react_aridos,
-                                      self.Ppto_react_pasta, self.seed, self.todo_correcto, self.check_poros,
-                                      self.check_puntos, self.check_puntos_aridos, self.check_puntos_pasta)
-        elif self.modo == 'poligonos':
-            self.worker = WorkerPoligonos(self.sieve_size, self.tpp, self.x, self.y, self.Pagg, self.Pporos, self.dporo_min,
-                                     self.dporo_max, self.r_react, self.dpto_max_aridos, self.dpto_min_aridos,
-                                     self.dpto_max_pasta, self.dpto_min_pasta, self.Ppto_react_aridos,
-                                     self.Ppto_react_pasta, self.seed, self.todo_correcto, self.check_poros,
-                                     self.check_puntos, self.check_puntos_aridos, self.check_puntos_pasta)
-        self.worker.moveToThread(self.thread)
 
-        self.thread.started.connect(self.worker.simular)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+        # Crear worker concreto pasando la dataclass (REQUIERE adaptar Worker* para aceptar SimParams)
+        if self.modo == 'circulos':
+            self.worker = WorkerTodos(params,
+                                      todo_correcto=self.todo_correcto,
+                                      check_poros=self.check_poros,
+                                      check_puntos=self.check_puntos,
+                                      check_puntos_aridos=self.check_puntos_aridos,
+                                      check_puntos_pasta=self.check_puntos_pasta)
+        elif self.modo == 'elipses':
+            self.worker = WorkerElipses(params,
+                                        todo_correcto=self.todo_correcto,
+                                        check_poros=self.check_poros,
+                                        check_puntos=self.check_puntos,
+                                        check_puntos_aridos=self.check_puntos_aridos,
+                                        check_puntos_pasta=self.check_puntos_pasta)
+        elif self.modo == 'poligonos':
+            self.worker = WorkerPoligonos(params,
+                                          todo_correcto=self.todo_correcto,
+                                          check_poros=self.check_poros,
+                                          check_puntos=self.check_puntos,
+                                          check_puntos_aridos=self.check_puntos_aridos,
+                                          check_puntos_pasta=self.check_puntos_pasta)
+        else:
+            QtWidgets.QMessageBox.warning(self, "Modo no definido", "Debes seleccionar un modo antes de simular.")
+            return
+
+        # self.worker.moveToThread(self.thread)
+        #
+        # self.thread.started.connect(self.worker.simular)
+        # self.worker.finished.connect(self.thread.quit)
+        # self.worker.finished.connect(self.worker.deleteLater)
+        # self.thread.finished.connect(self.thread.deleteLater)
+
+        # Mover worker a hilo usando el helper de WorkerBase
+        self.thread = self.worker.start_on_thread()
+
         self.worker.progreso.connect(self.mostrar_progreso)
         self.worker.information.connect(self.informar_worker)
         self.worker.information_error.connect(self.informar_worker_error)
@@ -561,20 +594,31 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.worker.coarse_list.connect(self.pasar_lista_gruesos)
         self.worker.fine_list.connect(self.pasar_lista_finos)
         self.worker.reactive_list.connect(self.pasar_lista_reactivos)
+
+        # Iniciar el hilo
         self.thread.start()
 
-        self.thread.finished.connect(
-            lambda: self.pb_ejecutar.setEnabled(True)
-        )
-        self.thread.finished.connect(
-            lambda: self.pb_stop.setEnabled(False)
-        )
+        # Restaurar habilitaciones al terminar
+        self.thread.finished.connect(lambda: self.pb_ejecutar.setEnabled(True))
+        self.thread.finished.connect(lambda: self.pb_stop.setEnabled(False))
+
 
     """
     He de implementarlo porque no funciona
     """
+
     def stop(self):
-        self.thread.terminate()
+        # Parada cooperativa: pedir al worker que pare
+        try:
+            if hasattr(self, 'worker') and self.worker is not None:
+                self.worker.stop()
+                # opcional: forzar salida ordenada del hilo después de pedir stop
+                if hasattr(self, 'thread') and self.thread is not None and self.thread.isRunning():
+                    # no bloquear mucho; esperar hasta 2s para terminar
+                    self.thread.quit()
+                    self.thread.wait(2000)
+        except Exception:
+            pass
 
     """
     limpiar variables para ejecutar una nueva simulación

@@ -1,3 +1,5 @@
+
+from worker_base import WorkerBase, SimParams
 import numpy as np
 from PyQt5.QtCore import pyqtSignal, QObject
 from matplotlib import pyplot as plt
@@ -10,43 +12,16 @@ import random
 from opensimplex import OpenSimplex
 
 
-class WorkerElipses(QObject):
-    finished = pyqtSignal()
-    imagen = pyqtSignal(object)
-    datos = pyqtSignal(dict)
-    information = pyqtSignal(str)
-    information_error = pyqtSignal(str)
-    progreso = pyqtSignal(int)
-    pore_list = pyqtSignal(list)
-    coarse_list = pyqtSignal(list)
-    fine_list = pyqtSignal(list)
-    reactive_list = pyqtSignal(list)
+class WorkerElipses(WorkerBase):
 
-    def __init__(self, sieve_size, tpp, x, y, Pagg, Pporos, dporo_min, dporo_max, r_react, dpto_max_aridos,
-                 dpto_min_aridos, dpto_max_pasta, dpto_min_pasta, Ppto_react_aridos, Ppto_react_pasta, seed,
-                 todo_correcto, check_poros, check_puntos, check_puntos_aridos, check_puntos_pasta):
+    def __init__(self, params: SimParams, todo_correcto: bool = True,
+                 check_poros: bool = False, check_puntos: bool = False,
+                 check_puntos_aridos: bool = False, check_puntos_pasta: bool = False):
 
-        QObject.__init__(self)
+        super().__init__(params)
 
-        self.sieve_size = sieve_size  # tamaño de malla del tamiz?
-        self.tpp = tpp # porcentaje acumulado de áridos que pasan por el correspondiente sieve_size
 
-        self.x = x   # variable dimensión x de la probeta
-        self.y = y   # variable dimensión y de la probeta
-        self.Pagg = Pagg    # coarse aggregate ratio
-        self.Pporos = Pporos  # porcentaje de poros
-        self.dporo_min = dporo_min   # diámetro mínimo de los poros
-        self.dporo_max = dporo_max   # diámetro máximo de los poros
-        self.r_react = r_react # creo que no está en uso
-        self.dpto_max_aridos = dpto_max_aridos # diámetro máximo de los ptos reactivos en los áridos
-        self.dpto_min_aridos = dpto_min_aridos # diámetro mínimo de los ptos reactivos en los áridos
-        self.dpto_max_pasta = dpto_max_pasta  # diámetro máximo de los ptos reactivos en la pasta
-        self.dpto_min_pasta = dpto_min_pasta  # diámetro mínimo de los ptos reactivos en la pasta
-        self.Ppto_react_aridos = Ppto_react_aridos   # porcentaje de puntos reactivos en los áridos
-        self.Ppto_react_pasta = Ppto_react_pasta    # porcentaje de puntos reactivos en la pasta
-        self.seed = seed    # semilla para evitar el random y poder recuperar proyectos
-
-        self.datos = None   # variable para necesaria para guardar/abrir proyectos
+        # self.datos = None   # variable para necesaria para guardar/abrir proyectos
 
         """"
         Variables necesarias
@@ -130,9 +105,9 @@ class WorkerElipses(QObject):
 
     def calcular_poros(self):
         if self.check_poros:
-            self.A_poros = self.A * self.Pporos
-            while self.A_poros > np.pi * (self.dporo_min / 2) ** 2:
-                rporo = (self.dporo_min + np.random.random() * (self.dporo_max - self.dporo_min)) / 2
+            self.A_poros = self.A * self.params.Pporos
+            while self.A_poros > np.pi * (self.params.dporo_min / 2) ** 2:
+                rporo = (self.params.dporo_min + np.random.random() * (self.params.dporo_max - self.params.dporo_min)) / 2
                 Aporo = np.pi * (rporo) ** 2
                 self.A_poros = self.A_poros - Aporo
                 self.radios_poros.append(rporo)
@@ -142,7 +117,7 @@ class WorkerElipses(QObject):
     def colocar_poros(self):
         def dentro_de_limites(x, y, r):
             """Verifica que el poro esté completamente dentro del dominio"""
-            return r < x < self.x - r and r < y < self.y - r
+            return r < x < self.params.x - r and r < y < self.params.y - r
 
         def intentar_colocar_poro(x, y, r, lista_existente, aridos_puestos):
             if not dentro_de_limites(x, y, r):
@@ -155,8 +130,8 @@ class WorkerElipses(QObject):
 
         while self.radios_poros:
             r = self.radios_poros[0]
-            x = np.random.uniform(0, self.x)
-            y = np.random.uniform(0, self.y)
+            x = np.random.uniform(0, self.params.x)
+            y = np.random.uniform(0, self.params.y)
             if intentar_colocar_poro(x, y, r, self.lista_poros, self.aridos_puestos):
                 self.lista_poros.append([x, y, r])
                 self.todos_poros.append(plt.Circle((x, y), r, color='r'))
@@ -172,11 +147,11 @@ class WorkerElipses(QObject):
     chequear si exinten tamaños de áridos menores a dos y eliminarlos
     """
     def dosificacion_sin_extrafinos(self):
-        print('la sieve size es ' + str(self.sieve_size))
+        print('la sieve size es ' + str(self.params.sieve_size))
         print('la sieve size buena es ' + str(self.sieve_size_buena))
         n = 0
-        while self.sieve_size[n] >= 2:
-            self.sieve_size_buena.append(self.sieve_size[n])
+        while self.params.sieve_size[n] >= 2:
+            self.sieve_size_buena.append(self.params.sieve_size[n])
             n = n + 1
             # return self.sieve_size_buena
         self.information.emit('Quitados los extrafinos de la dosificación.')
@@ -184,16 +159,16 @@ class WorkerElipses(QObject):
         print('la buena dosificacion es ' + str(self.sieve_size_buena))
 
     def calcular_areas_aridos_sin_extrafinos(self):
-        self.A = float(self.x) * float(self.y)
+        self.A = float(self.params.x) * float(self.params.y)
         self.Aagg = []
 
         # Aseguramos que los tamaños de tamiz y TPP estén en float
         sieve = [float(s) for s in self.sieve_size_buena]
-        tpp = [float(p) for p in self.tpp]
+        tpp = [float(p) for p in self.params.tpp]
 
         for i in range(len(sieve) - 1):  # i+1 no se sale del rango
             fraccion = (tpp[i] - tpp[i + 1]) / (tpp[0] - tpp[-1])
-            area_intervalo = fraccion * self.Pagg * self.A
+            area_intervalo = fraccion * self.params.Pagg * self.A
             self.Aagg.append(area_intervalo)  # No redondeamos aquí
 
         print([round(a, 2) for a in self.Aagg])
@@ -307,8 +282,8 @@ class WorkerElipses(QObject):
             num_particulas = 0
             area_c = 0
             self.Aagg_finos[l] = self.Aagg_finos[l] + self.A_remanente
-            while self.Aagg_finos[l] - area_c > np.pi * (self.sieve_size[k + 1] / 2) ** 2:
-                d = self.sieve_size[k + 1] + np.random.rand() * (self.sieve_size[k] - self.sieve_size[k + 1])
+            while self.Aagg_finos[l] - area_c > np.pi * (self.params.sieve_size[k + 1] / 2) ** 2:
+                d = self.params.sieve_size[k + 1] + np.random.rand() * (self.params.sieve_size[k] - self.params.sieve_size[k + 1])
                 b = d / 2 # semieje menor
                 aspecto = np.random.uniform(1.0, 1.5) # relación de aspecto aleatoria
                 a = b * aspecto # semieje menor
@@ -354,7 +329,7 @@ class WorkerElipses(QObject):
     def colocar_elipses(self):
         def dentro_de_limites(x, y, a, b):
             """Verifica que la elipse esté completamente dentro del dominio"""
-            return a < x < self.x - a and b < y < self.y - b
+            return a < x < self.params.x - a and b < y < self.params.y - b
 
         def generar_elipse_shapely(x, y, a, b, angulo):
             circ = Point(x, y).buffer(1)
@@ -385,25 +360,25 @@ class WorkerElipses(QObject):
         def colocar(lista_ab, lista_datos, lista_poligonos, color, progreso_val, mensaje):
             while lista_ab:
                 a, b = lista_ab[0]
-                x = np.random.uniform(0, self.x)
-                y = np.random.uniform(0, self.y)
-                resultado = intentar_colocar_elipse(x, y, a, b, self.lista_elipses, self.poros_puestos)
+                x = np.random.uniform(0, self.params.x)
+                y = np.random.uniform(0, self.params.y)
+                resultado = intentar_colocar_elipse(x, y, a, b, self.params.lista_elipses, self.poros_puestos)
                 if resultado:
                     elipse_shapely, datos = resultado
-                    self.lista_elipses.append(elipse_shapely)
+                    self.params.lista_elipses.append(elipse_shapely)
                     lista_datos.append(datos)
                     lista_poligonos.append(elipse_shapely)
                     lista_ab.pop(0)
                     self.aridos_puestos = True
 
-            print(f'Tengo tantas elipses: {len(self.lista_elipses)}')
+            print(f'Tengo tantas elipses: {len(self.params.lista_elipses)}')
             self.progreso.emit(progreso_val)
             self.information.emit(f'{mensaje} colocadas. {len(lista_datos)}')
 
         # Colocar áridos gruesos (elipses)
         colocar(
             lista_ab=self.radios_gruesos_elipses,
-            lista_datos=self.lista_elipses_gruesos_datos,
+            lista_datos=self.ista_elipses_gruesos_datos,
             lista_poligonos=self.lista_elipses_gruesos,
             color='b',
             progreso_val=30,
@@ -423,7 +398,7 @@ class WorkerElipses(QObject):
     def colocar_aridos_finos_y_gruesos(self):
         def dentro_de_limites(x, y, a, b):
             """Verifica que la elipse esté completamente dentro del dominio"""
-            return a < x < self.x - a and b < y < self.y - b
+            return a < x < self.params.x - a and b < y < self.params.y - b
 
         def generar_elipse_shapely(x, y, a, b, angulo):
             circ = Point(x, y).buffer(1)
@@ -454,8 +429,8 @@ class WorkerElipses(QObject):
         def colocar(lista_ab, lista_datos, lista_elipses, color, progreso_val, mensaje):
             while lista_ab:
                 a, b = lista_ab[0]
-                x = np.random.uniform(0, self.x)
-                y = np.random.uniform(0, self.y)
+                x = np.random.uniform(0, self.params.x)
+                y = np.random.uniform(0, self.params.y)
                 resultado = intentar_colocar_elipse(x, y, a, b, self.lista_aridos, self.poros_puestos)
                 if resultado:
                     elipse_shapely, datos = resultado
@@ -603,14 +578,14 @@ class WorkerElipses(QObject):
     def calcular_puntos_sin_extrafinos(self):
         """puntos sobre áridos gruesos"""
         if self.check_puntos_aridos:
-            if self.Ppto_react_aridos:
-                self.A_puntos_aridos = self.Ppto_react_aridos * self.A
-                while self.A_puntos_aridos > np.pi * (self.dpto_min_aridos / 2) ** 2:
-                    if self.dpto_min_aridos == self.dpto_max_aridos:
-                        rpunto = self.dpto_min_aridos /2
+            if self.params.Ppto_react_aridos:
+                self.A_puntos_aridos = self.params.Ppto_react_aridos * self.A
+                while self.A_puntos_aridos > np.pi * (self.params.dpto_min_aridos / 2) ** 2:
+                    if self.params.dpto_min_aridos == self.params.dpto_max_aridos:
+                        rpunto = self.params.dpto_min_aridos /2
                     else:
-                        rpunto = (self.dpto_min_aridos + np.random.random() *
-                                    (self.dpto_max_aridos - self.dpto_min_aridos)) / 2
+                        rpunto = (self.params.dpto_min_aridos + np.random.random() *
+                                    (self.params.dpto_max_aridos - self.params.dpto_min_aridos)) / 2
                     Apunto = np.pi * (rpunto) ** 2
                     self.A_puntos_aridos = self.A_puntos_aridos - Apunto
                     self.radios_puntos.append(rpunto)  # ¿sobra?
@@ -620,14 +595,14 @@ class WorkerElipses(QObject):
 
         """puntos sobre los finos (y pasta)"""
         if self.check_puntos_pasta:
-            if self.Ppto_react_pasta:
-                self.A_puntos_pasta = self.Ppto_react_pasta * self.A
-                while self.A_puntos_pasta > np.pi * (self.dpto_min_pasta / 2) ** 2:
-                    if self.dpto_min_pasta == self.dpto_max_pasta:
-                        rpunto = self.dpto_min_pasta / 2
+            if self.params.Ppto_react_pasta:
+                self.A_puntos_pasta = self.params.Ppto_react_pasta * self.A
+                while self.A_puntos_pasta > np.pi * (self.params.dpto_min_pasta / 2) ** 2:
+                    if self.params.dpto_min_pasta == self.params.dpto_max_pasta:
+                        rpunto = self.params.dpto_min_pasta / 2
                     else:
-                        rpunto = (self.dpto_min_pasta + np.random.random() * (
-                                    self.dpto_max_pasta - self.dpto_min_pasta)) / 2
+                        rpunto = (self.params.dpto_min_pasta + np.random.random() * (
+                                    self.params.dpto_max_pasta - self.params.dpto_min_pasta)) / 2
                     Apunto = np.pi * (rpunto) ** 2
                     self.A_puntos_pasta = self.A_puntos_pasta - Apunto
                     self.radios_puntos.append(rpunto)  # ¿sobra?
@@ -730,7 +705,7 @@ class WorkerElipses(QObject):
     def colocar_puntos_sin_extrafinos(self):
         """Coloca los puntos reactivos sobre los áridos y la pasta, utilizando clusters para los áridos y ruido Simplex para la pasta."""
         def dentro_de_limites(x, y, r):
-            return r < x < self.x - r and r < y < self.y - r
+            return r < x < self.params.x - r and r < y < self.params.y - r
 
         def intentar_colocar_punto(x, y, r, lista_existente, evitar_aridos, poros_puestos):
             if not dentro_de_limites(x, y, r):
@@ -746,7 +721,7 @@ class WorkerElipses(QObject):
             return True
 
         def generar_centros_clusters(k):
-            return [(np.random.uniform(0, self.x), np.random.uniform(0, self.y)) for _ in range(k)]
+            return [(np.random.uniform(0, self.params.x), np.random.uniform(0, self.params.y)) for _ in range(k)]
 
         def colocar_con_clusters(lista_radios, lista_guardar, evitar_aridos, poros_puestos, k=5, sigma=5):
             centros = generar_centros_clusters(k)
@@ -767,8 +742,8 @@ class WorkerElipses(QObject):
             while lista_radios:
                 r = lista_radios[0]
                 for _ in range(1000):
-                    x = np.random.uniform(0, self.x)
-                    y = np.random.uniform(0, self.y)
+                    x = np.random.uniform(0, self.params.x)
+                    y = np.random.uniform(0, self.params.y)
                     valor = (ruido.noise2(x * escala, y * escala) + 1) / 2
                     if valor < umbral:
                         continue
@@ -799,8 +774,8 @@ class WorkerElipses(QObject):
     def plotear_resultados(self):
         figure, axes = plt.subplots(dpi=200)
         plt.axis("equal")
-        axes.set_xlim(0, self.x)
-        axes.set_ylim(0, self.y)
+        axes.set_xlim(0, self.params.x)
+        axes.set_ylim(0, self.params.y)
 
         """Convertir Shapely Polygons a matplotlib.patches.Polygon"""
 
@@ -827,8 +802,8 @@ class WorkerElipses(QObject):
             axes.add_collection(react_collection)
 
         """Dibujar el contorno de la probeta"""
-        if self.x and self.y:
-            probeta = plt.Rectangle((0, 0), self.x, self.y, color='black', fill=False)
+        if self.params.x and self.params.y:
+            probeta = plt.Rectangle((0, 0), self.params.x, self.params.y, color='black', fill=False)
             axes.add_patch(probeta)
             axes.autoscale_view()
 
@@ -844,25 +819,95 @@ class WorkerElipses(QObject):
         self.reactive_list.emit(self.lista_ptos_react)
         self.finished.emit()
 
+    # def simular(self):
+    #
+    #     print('empieza la simulacion')
+    #     print('está todo correcto? ' + str(self.todo_correcto))
+    #     # self.todo_correcto = False
+    #     if self.todo_correcto:
+    #         print('todo correcto')
+    #         self.dosificacion_sin_extrafinos()
+    #         self.calcular_areas_aridos_sin_extrafinos()
+    #         self.calcular_aridos_por_area_gruesos()
+    #         self.calcular_aridos_por_area_finos()
+    #         self.colocar_aridos_finos_y_gruesos()
+    #
+    #         if self.check_poros:
+    #             self.calcular_poros()
+    #             self.colocar_poros()
+    #         if self.check_puntos:
+    #             self.calcular_puntos_sin_extrafinos()
+    #             self.colocar_puntos_sin_extrafinos()
+    #         self.plotear_resultados()
+    #     else:
+    #         self.information_error.emit('--error grave')
+
     def simular(self):
+        try:
+            self.information.emit("Empieza la simulación...")
+            self.information.emit(f"¿Todo correcto? {self.todo_correcto}")
 
-        print('empieza la simulacion')
-        print('está todo correcto? ' + str(self.todo_correcto))
-        # self.todo_correcto = False
-        if self.todo_correcto:
-            print('todo correcto')
+            if not self.todo_correcto:
+                self.information_error.emit("--error grave")
+                self.finished.emit()
+                return
+
+            # Paso 1: dosificación
+            if self._stop: return
             self.dosificacion_sin_extrafinos()
-            self.calcular_areas_aridos_sin_extrafinos()
-            self.calcular_aridos_por_area_gruesos()
-            self.calcular_aridos_por_area_finos()
-            self.colocar_aridos_finos_y_gruesos()
+            self.progreso.emit(5)
 
+            # Paso 2: cálculo de áreas
+            if self._stop: return
+            self.calcular_areas_aridos_sin_extrafinos()
+            self.progreso.emit(10)
+
+            # Paso 3: aridos gruesos por área
+            if self._stop: return
+            self.calcular_aridos_por_area_gruesos()
+            self.progreso.emit(20)
+
+            # Paso 4: aridos finos por área
+            if self._stop: return
+            self.calcular_aridos_por_area_finos()
+            self.progreso.emit(30)
+
+            # Paso 5: colocar áridos (fino + grueso)
+            if self._stop: return
+            self.colocar_aridos_finos_y_gruesos()
+            self.progreso.emit(50)
+
+            # Paso 6: poros (opcional)
             if self.check_poros:
+                if self._stop: return
                 self.calcular_poros()
                 self.colocar_poros()
+                self.progreso.emit(65)
+
+            # Paso 7: puntos reactivos (opcional)
             if self.check_puntos:
+                if self._stop: return
                 self.calcular_puntos_sin_extrafinos()
                 self.colocar_puntos_sin_extrafinos()
-            self.plotear_resultados()
-        else:
-            self.information_error.emit('--error grave')
+                self.progreso.emit(80)
+
+            # Paso 8: ploteo (si lo usas dentro del Worker)
+            if not self._stop:
+                self.plotear_resultados()
+                self.progreso.emit(95)
+
+            # Emitir listas reales al terminar
+            # (ajusta los nombres por los que uses internamente)
+            self.pore_list.emit(getattr(self, "lista_poros", []))
+            self.coarse_list.emit(getattr(self, "lista_aridos_gruesos", []))
+            self.fine_list.emit(getattr(self, "lista_aridos_finos", []))
+            self.reactive_list.emit(getattr(self, "lista_puntos", []))
+
+            self.information.emit("Simulación finalizada correctamente.")
+            self.progreso.emit(100)
+
+        except Exception as e:
+            self.information_error.emit(f"Error en simular(): {e}")
+
+        finally:
+            self.finished.emit()
