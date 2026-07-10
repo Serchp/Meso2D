@@ -6,6 +6,11 @@ from PyQt5.QtCore import QObject, pyqtSignal, QThread
 import time
 
 
+class SimulationStopped(Exception):
+    """Señal interna para abortar de forma cooperativa una simulación."""
+    pass
+
+
 @dataclass
 class SimParams:
     sieve_size: List[int]
@@ -47,6 +52,12 @@ class WorkerBase(QObject):
         """Señal para parar cooperativamente el worker."""
         self._stop = True
         self.information.emit("Parada solicitada al worker.")
+
+    def check_stop(self):
+        """Comprueba si se solicitó detener la simulación y aborta de forma cooperativa."""
+        if self._stop:
+            self.information.emit("Simulación parada por el usuario.")
+            raise SimulationStopped()
 
     def simular(self):
         """

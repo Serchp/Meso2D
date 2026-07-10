@@ -547,6 +547,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.informar('El valor de la semilla es ' + str(self.seed), color=self.blackColor)
 
         self.pb_stop.setEnabled(True)
+        self.progressBar.setValue(0)
 
         self.thread = QThread()
 
@@ -621,14 +622,13 @@ class mainProgram(QMainWindow, Ui_MainWindow):
             pass
 
     def stop_simulation(self):
-        if not self.worker:
+        if not hasattr(self, 'worker') or self.worker is None:
             return
-        # pedir parada al worker
         self.worker.stop()
-        # actualizar botones inmediatamente como solicitas
         self.pb_stop.setEnabled(False)
         self.pb_ejecutar.setEnabled(True)
-        # self.append_log("Stop solicitado por el usuario.")
+        self.progressBar.setValue(0)
+        self.informar('Parada solicitada. La simulación terminará en el siguiente punto de control.', color=self.blackColor)
 
     """
     limpiar variables para ejecutar una nueva simulación

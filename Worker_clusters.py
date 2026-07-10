@@ -1,5 +1,5 @@
 
-from worker_base import WorkerBase, SimParams
+from worker_base import WorkerBase, SimParams, SimulationStopped
 import numpy as np
 from PyQt5.QtCore import pyqtSignal, QObject
 from matplotlib import pyplot as plt
@@ -116,6 +116,7 @@ class WorkerTodos(WorkerBase):
         if self.check_poros:
             self.A_poros = self.A * self.params.Pporos
             while self.A_poros > np.pi * (self.params.dporo_min / 2) ** 2:
+                self.check_stop()
                 rporo = (self.params.dporo_min + np.random.random() * (self.params.dporo_max - self.params.dporo_min)) / 2
                 Aporo = np.pi * (rporo) ** 2
                 self.A_poros = self.A_poros - Aporo
@@ -173,6 +174,7 @@ class WorkerTodos(WorkerBase):
             return True
 
         while self.radios_poros:
+            self.check_stop()
             r = self.radios_poros[0]
             x = np.random.uniform(0, self.params.x)
             y = np.random.uniform(0, self.params.y)
@@ -243,10 +245,12 @@ class WorkerTodos(WorkerBase):
         """Calcular los áridos por fracción gruesa"""
         j = 0
         while j < len(self.Aagg_gruesos):
+            self.check_stop()
             num_particulas = 0
             area_c = 0
             self.Aagg_gruesos[j] = self.Aagg_gruesos[j] + self.A_remanente
             while self.Aagg_gruesos[j] - area_c > np.pi * (self.sieve_size_buena[j + 1] / 2) ** 2:
+                self.check_stop()
                 d = self.sieve_size_buena[j + 1] + np.random.rand() * (self.sieve_size_buena[j] - self.sieve_size_buena[j + 1])
                 area = np.pi * (d / 2) ** 2
                 if area + area_c < self.Aagg_gruesos[j]:
@@ -266,10 +270,12 @@ class WorkerTodos(WorkerBase):
         k = len(self.Aagg_gruesos)
         l = 0
         while l < len(self.Aagg_finos):
+            self.check_stop()
             num_particulas = 0
             area_c = 0
             self.Aagg_finos[l] = self.Aagg_finos[l] + self.A_remanente
             while self.Aagg_finos[l] - area_c > np.pi * (self.params.sieve_size[k + 1] / 2) ** 2:
+                self.check_stop()
                 d = self.params.sieve_size[k + 1] + np.random.rand() * (self.params.sieve_size[k] - self.params.sieve_size[k + 1])
                 area = np.pi * (d / 2) ** 2
                 if area + area_c < self.Aagg_finos[l]:
@@ -435,6 +441,7 @@ class WorkerTodos(WorkerBase):
 
         def colocar(lista_radios, lista_datos, lista_circulos, color, progreso_val, mensaje):
             while lista_radios:
+                self.check_stop()
                 r = lista_radios[0]
                 x = np.random.uniform(0, self.params.x)
                 y = np.random.uniform(0, self.params.y)
@@ -480,6 +487,7 @@ class WorkerTodos(WorkerBase):
             if self.params.Ppto_react_aridos:
                 self.A_puntos_aridos = self.params.Ppto_react_aridos * self.A
                 while self.A_puntos_aridos > np.pi * (self.params.dpto_min_aridos / 2) ** 2:
+                    self.check_stop()
                     if self.params.dpto_min_aridos == self.params.dpto_max_aridos:
                         rpunto = self.params.dpto_min_aridos /2
                     else:
@@ -497,6 +505,7 @@ class WorkerTodos(WorkerBase):
             if self.params.Ppto_react_pasta:
                 self.A_puntos_pasta = self.params.Ppto_react_pasta * self.A
                 while self.A_puntos_pasta > np.pi * (self.params.dpto_min_pasta / 2) ** 2:
+                    self.check_stop()
                     if self.params.dpto_min_pasta == self.params.dpto_max_pasta:
                         rpunto = self.params.dpto_min_pasta / 2
                     else:
@@ -699,8 +708,10 @@ class WorkerTodos(WorkerBase):
         def colocar_con_clusters(lista_radios, lista_guardar, evitar_aridos, poros_puestos, k=5, sigma=5):
             centros = generar_centros_clusters(k)
             while lista_radios:
+                self.check_stop()
                 r = lista_radios[0]
                 for _ in range(1000):
+                    self.check_stop()
                     cx, cy = random.choice(centros)
                     x = np.random.normal(cx, sigma)
                     y = np.random.normal(cy, sigma)
@@ -713,8 +724,10 @@ class WorkerTodos(WorkerBase):
         def colocar_con_simplex(lista_radios, lista_guardar, evitar_aridos, poros_puestos, escala=0.05, umbral=0.3):
             ruido = OpenSimplex(seed=42)
             while lista_radios:
+                self.check_stop()
                 r = lista_radios[0]
                 for _ in range(1000):
+                    self.check_stop()
                     x = np.random.uniform(0, self.params.x)
                     y = np.random.uniform(0, self.params.y)
                     valor = (ruido.noise2(x * escala, y * escala) + 1) / 2
@@ -874,6 +887,8 @@ class WorkerTodos(WorkerBase):
             self.information.emit("Simulación finalizada correctamente.")
             self.progreso.emit(100)
 
+        except SimulationStopped:
+            self.information.emit("Simulación parada por el usuario.")
         except Exception as e:
             self.information_error.emit(f"Error en simular(): {e}")
 

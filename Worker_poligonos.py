@@ -1,5 +1,5 @@
 
-from worker_base import WorkerBase, SimParams
+from worker_base import WorkerBase, SimParams, SimulationStopped
 import numpy as np
 from PyQt5.QtCore import pyqtSignal, QObject
 from matplotlib import pyplot as plt
@@ -158,6 +158,7 @@ class WorkerPoligonos(WorkerBase):
         if self.check_poros:
             self.A_poros = self.A * self.params.Pporos
             while self.A_poros > np.pi * (self.params.dporo_min / 2) ** 2:
+                self.check_stop()
                 rporo = (self.params.dporo_min + np.random.random() * (self.params.dporo_max - self.params.dporo_min)) / 2
                 Aporo = np.pi * (rporo) ** 2
                 self.A_poros = self.A_poros - Aporo
@@ -454,6 +455,7 @@ class WorkerPoligonos(WorkerBase):
             if self.params.Ppto_react_aridos:
                 self.A_puntos_aridos = self.params.Ppto_react_aridos * self.A
                 while self.A_puntos_aridos > np.pi * (self.params.dpto_min_aridos / 2) ** 2:
+                    self.check_stop()
                     if self.params.dpto_min_aridos == self.params.dpto_max_aridos:
                         rpunto = self.params.dpto_min_aridos / 2
                     else:
@@ -471,6 +473,7 @@ class WorkerPoligonos(WorkerBase):
             if self.params.Ppto_react_pasta:
                 self.A_puntos_pasta = self.params.Ppto_react_pasta * self.A
                 while self.A_puntos_pasta > np.pi * (self.params.dpto_min_pasta / 2) ** 2:
+                    self.check_stop()
                     if self.params.dpto_min_pasta == self.params.dpto_max_pasta:
                         rpunto = self.params.dpto_min_pasta / 2
                     else:
@@ -1105,6 +1108,8 @@ class WorkerPoligonos(WorkerBase):
             self.information.emit("Simulación finalizada correctamente.")
             self.progreso.emit(100)
 
+        except SimulationStopped:
+            self.information.emit("Simulación parada por el usuario.")
         except Exception as e:
             self.information_error.emit(f"Error en simular(): {e}")
 
