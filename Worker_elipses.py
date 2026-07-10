@@ -87,17 +87,64 @@ class WorkerElipses(WorkerBase):
 
         return np.all(distancias > radios_sumados)
 
+    # def distancias_aridos_ptos(self, lista, coor_x, coor_y, radio):
+    #     if not lista:
+    #         return False  # No hay solapamiento si no hay elementos
+    #
+    #     lista_np = np.array(lista)  # Asume que cada n es [x, y, r]
+    #     dx = lista_np[:, 0] - coor_x
+    #     dy = lista_np[:, 1] - coor_y
+    #     distancias = np.sqrt(dx ** 2 + dy ** 2)
+    #     radios_sumados = radio + lista_np[:, 2]
+    #
+    #     return np.any(distancias < radios_sumados)
+
     def distancias_aridos_ptos(self, lista, coor_x, coor_y, radio):
+        """
+        Devuelve True si el nuevo punto (coor_x, coor_y, radio) intersecta con
+        al menos un árido de 'lista'. Soporta:
+          - elementos [x, y, r] (círculos),
+          - elementos [cx, cy, a, b, angle?] (elipses, a/b semi-ejes, angle en grados opcional),
+          - objetos Shapely (Polygon, Geometry).
+        """
         if not lista:
-            return False  # No hay solapamiento si no hay elementos
+            return False
 
-        lista_np = np.array(lista)  # Asume que cada n es [x, y, r]
-        dx = lista_np[:, 0] - coor_x
-        dy = lista_np[:, 1] - coor_y
-        distancias = np.sqrt(dx ** 2 + dy ** 2)
-        radios_sumados = radio + lista_np[:, 2]
+        nuevo = Point(coor_x, coor_y).buffer(radio, resolution=32)
 
-        return np.any(distancias < radios_sumados)
+        for ar in lista:
+            # Caso: círculo definido como [x, y, r]
+            if isinstance(ar, (list, tuple)) and len(ar) == 3:
+                try:
+                    ar_circ = Point(ar[0], ar[1]).buffer(ar[2], resolution=32)
+                except Exception:
+                    continue
+                if nuevo.intersects(ar_circ):
+                    return True
+
+            # Caso: elipse parametrizada [cx, cy, a, b, angle?]
+            elif isinstance(ar, (list, tuple)) and len(ar) >= 4:
+                try:
+                    cx, cy, a, b = ar[0], ar[1], ar[2], ar[3]
+                    angle = ar[4] if len(ar) > 4 else 0.0
+                    base = Point(cx, cy).buffer(1.0, resolution=64)
+                    elipse = affinity.scale(base, a, b, origin=(cx, cy))
+                    if angle:
+                        elipse = affinity.rotate(elipse, angle, origin=(cx, cy))
+                except Exception:
+                    continue
+                if nuevo.intersects(elipse):
+                    return True
+
+            # Caso: ya es una geometría Shapely
+            else:
+                try:
+                    if nuevo.intersects(ar):
+                        return True
+                except Exception:
+                    continue
+
+        return False
 
     def distancias_poros_elipses(self, x, y, radio, lista_elipses):
         poro = Point(x, y).buffer(radio)

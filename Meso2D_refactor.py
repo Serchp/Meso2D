@@ -101,7 +101,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.pb_eliminar.clicked.connect(self.actualizar)
         self.pb_ver_estructura.clicked.connect(self.ver_estructura)
 
-        self.pb_stop.clicked.connect(self.stop)
+        self.pb_stop.clicked.connect(self.stop_simulation)
 
         self.cb_poros.toggled.connect(self.habilitar)
         self.cb_puntos.toggled.connect(self.habilitar)
@@ -619,6 +619,16 @@ class mainProgram(QMainWindow, Ui_MainWindow):
                     self.thread.wait(2000)
         except Exception:
             pass
+
+    def stop_simulation(self):
+        if not self.worker:
+            return
+        # pedir parada al worker
+        self.worker.stop()
+        # actualizar botones inmediatamente como solicitas
+        self.pb_stop.setEnabled(False)
+        self.pb_ejecutar.setEnabled(True)
+        # self.append_log("Stop solicitado por el usuario.")
 
     """
     limpiar variables para ejecutar una nueva simulación

@@ -727,19 +727,18 @@ class WorkerTodos(WorkerBase):
                         break
 
         # Colocar puntos sobre áridos con clusters
-        colocar_con_clusters(self.radios_puntos_aridos, self.lista_ptos_react_aridos,
-                             evitar_aridos=False, poros_puestos=self.poros_puestos)
-
-        self.progreso.emit(65)
         if self.check_puntos_aridos:
+            colocar_con_clusters(self.radios_puntos_aridos, self.lista_ptos_react_aridos,
+                                 evitar_aridos=False, poros_puestos=self.poros_puestos)
             self.information.emit('Puntos reactivos sobre los áridos colocados')
+            self.progreso.emit(65)
 
         # Colocar puntos sobre pasta con ruido Simplex
-        colocar_con_simplex(self.radios_puntos_pasta, self.lista_ptos_react_pasta,
-                            evitar_aridos=True, poros_puestos=self.poros_puestos)
-
-        self.progreso.emit(70)
         if self.check_puntos_pasta:
+            colocar_con_simplex(self.radios_puntos_pasta, self.lista_ptos_react_pasta,
+                                evitar_aridos=True, poros_puestos=self.poros_puestos)
+
+            self.progreso.emit(70)
             self.information.emit('Puntos reactivos sobre la pasta colocados')
 
         self.lista_ptos_react = self.lista_ptos_react_aridos + self.lista_ptos_react_pasta

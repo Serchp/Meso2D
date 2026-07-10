@@ -61,7 +61,8 @@ class WorkerBase(QObject):
                     break
                 # trabajo ficticio / placeholder
                 time.sleep(0.01)
-                porcentaje = int((i + 1) / pasos * 100)
+                # porcentaje = int((i + 1) / pasos * 100)
+                porcentaje = 0
                 self.progreso.emit(porcentaje)
             # emitir resultados de ejemplo (vacíos) para mantener la compatibilidad
             self.pore_list.emit([])

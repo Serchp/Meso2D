@@ -9,6 +9,8 @@ from shapely.geometry import Point, Polygon, box
 from shapely import affinity
 from matplotlib.patches import Polygon as MplPolygon
 from matplotlib.patches import Circle
+from shapely.strtree import STRtree
+from shapely.geometry import box
 
 
 class WorkerPoligonos(WorkerBase):
@@ -99,6 +101,53 @@ class WorkerPoligonos(WorkerBase):
         # return any(nuevo_circulo.intersects(arido) for arido in lista_aridos)
 
         return any(nuevo_circulo.intersects(Point(ar[0], ar[1]).buffer(ar[2])) for ar in lista_aridos)
+
+    # def distancias_aridos_ptos(self, lista, coor_x, coor_y, radio):
+    #     """
+    #     Devuelve True si el nuevo punto (coor_x, coor_y, radio) intersecta con
+    #     al menos un árido de 'lista'. Soporta:
+    #       - elementos [x, y, r] (círculos),
+    #       - elementos [cx, cy, a, b, angle?] (elipses, a/b semi-ejes, angle en grados opcional),
+    #       - objetos Shapely (Polygon, Geometry).
+    #     """
+    #     if not lista:
+    #         return False
+    #
+    #     nuevo = Point(coor_x, coor_y).buffer(radio, resolution=32)
+    #
+    #     for ar in lista:
+    #         # Caso: círculo definido como [x, y, r]
+    #         if isinstance(ar, (list, tuple)) and len(ar) == 3:
+    #             try:
+    #                 ar_circ = Point(ar[0], ar[1]).buffer(ar[2], resolution=32)
+    #             except Exception:
+    #                 continue
+    #             if nuevo.intersects(ar_circ):
+    #                 return True
+    #
+    #         # Caso: elipse parametrizada [cx, cy, a, b, angle?]
+    #         elif isinstance(ar, (list, tuple)) and len(ar) >= 4:
+    #             try:
+    #                 cx, cy, a, b = ar[0], ar[1], ar[2], ar[3]
+    #                 angle = ar[4] if len(ar) > 4 else 0.0
+    #                 base = Point(cx, cy).buffer(1.0, resolution=64)
+    #                 elipse = affinity.scale(base, a, b, origin=(cx, cy))
+    #                 if angle:
+    #                     elipse = affinity.rotate(elipse, angle, origin=(cx, cy))
+    #             except Exception:
+    #                 continue
+    #             if nuevo.intersects(elipse):
+    #                 return True
+    #
+    #         # Caso: ya es una geometría Shapely
+    #         else:
+    #             try:
+    #                 if nuevo.intersects(ar):
+    #                     return True
+    #             except Exception:
+    #                 continue
+    #
+    #     return False
 
     def distancias_poros_aridos(self, x, y, r, lista_aridos):
         """Verifica que el poro no colisione con ningún árido poligonal"""
@@ -910,6 +959,87 @@ class WorkerPoligonos(WorkerBase):
     #         self.plotear_resultados()
     #     else:
     #         self.information_error.emit('--error grave')
+    #
+    # def colocar_puntos_sin_extrafinos(self):
+    #     """
+    #     Versión acelerada usando STRtree para los áridos (índice espacial).
+    #     - Menos buffers/union costosos.
+    #     - Buffer resolution reducido para acelerar (ajustable).
+    #     """
+    #     resolution = 8  # reducir para acelerar; ajustar si necesitas más precisión
+    #
+    #     # Construir geometrías y árbol espacial una sola vez
+    #     aridos_geoms = [Point(x, y).buffer(r, resolution=resolution) for x, y, r in self.lista_aridos_gruesos]
+    #     aridos_tree = STRtree(aridos_geoms) if aridos_geoms else None
+    #
+    #     dominio = box(0, 0, self.params.x, self.params.y)
+    #
+    #     def dentro_de_limites(x, y, r):
+    #         return r < x < self.params.x - r and r < y < self.params.y - r
+    #
+    #     def intentar_colocar_punto(x, y, r, lista_existente, evitar_aridos, poros_puestos):
+    #         if not dentro_de_limites(x, y, r):
+    #             return False
+    #
+    #         # comprobaciones rápidas con listas existentes (poros / puntos)
+    #         if poros_puestos and not self.distancias(self.lista_poros, x, y, r):
+    #             return False
+    #         if lista_existente and not self.distancias(lista_existente, x, y, r):
+    #             return False
+    #
+    #         # candidato como geometría (baja resolución)
+    #         candidato = Point(x, y).buffer(r, resolution=resolution)
+    #
+    #         # Si queremos colocar EN áridos: debe intersectar al menos uno
+    #         if not evitar_aridos:
+    #             if not aridos_tree:
+    #                 return False
+    #             posibles = aridos_tree.query(candidato)
+    #             if not any(candidato.intersects(g) for g in posibles):
+    #                 return False
+    #
+    #         # Si queremos colocar EN pasta: no debe intersectar ningún árido
+    #         else:
+    #             if aridos_tree:
+    #                 posibles = aridos_tree.query(candidato)
+    #                 if any(candidato.intersects(g) for g in posibles):
+    #                     return False
+    #
+    #         return True
+    #
+    #     def colocar(lista_radios, lista_guardar, evitar_aridos, poros_puestos):
+    #         max_intentos_por_punto = 1000
+    #         while lista_radios:
+    #             r = lista_radios[0]
+    #             colocado = False
+    #             for _ in range(max_intentos_por_punto):
+    #                 x = np.random.uniform(0, self.params.x)
+    #                 y = np.random.uniform(0, self.params.y)
+    #                 if intentar_colocar_punto(x, y, r, lista_guardar, evitar_aridos, poros_puestos):
+    #                     lista_guardar.append([x, y, r])
+    #                     self.todos_ptos_react.append(plt.Circle((x, y), r, color='y'))
+    #                     colocado = True
+    #                     break
+    #             if not colocado:
+    #                 # opcional: log corto para saber qué radios fallan
+    #                 print(f"No se pudo colocar punto con r={r:.3f} tras {max_intentos_por_punto} intentos.")
+    #             lista_radios.pop(0)
+    #
+    #     # Colocar puntos sobre áridos
+    #     if self.check_puntos_aridos:
+    #         colocar(self.radios_puntos_aridos, self.lista_ptos_react_aridos,
+    #                 evitar_aridos=False, poros_puestos=self.poros_puestos)
+    #         self.progreso.emit(65)
+    #         self.information.emit('Puntos reactivos sobre los áridos colocados')
+    #
+    #     # Colocar puntos sobre pasta
+    #     if self.check_puntos_pasta:
+    #         colocar(self.radios_puntos_pasta, self.lista_ptos_react_pasta,
+    #                 evitar_aridos=True, poros_puestos=self.poros_puestos)
+    #         self.progreso.emit(70)
+    #         self.information.emit('Puntos reactivos sobre la pasta colocados')
+    #
+    #     self.lista_ptos_react = self.lista_ptos_react_aridos + self.lista_ptos_react_pasta
 
     def simular(self):
         try:
