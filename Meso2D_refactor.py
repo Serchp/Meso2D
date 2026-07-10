@@ -17,9 +17,7 @@ from Main_inicio import Ui_MainWindow as Menuinicio
 from GV import MiGraphicsView
 # from Worker import WorkerTodos
 from worker_base import SimParams
-from Worker_clusters import WorkerTodos
-from Worker_elipses import WorkerElipses
-from Worker_poligonos import WorkerPoligonos
+from simulation_service import create_worker
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal, QObject, QThread, QFileInfo, Qt, QDate, QPropertyAnimation, QPointF
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog, QTableWidget, QTableWidgetItem, QVBoxLayout
@@ -31,6 +29,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from dialog_GV import Ui_Dialog_GV
 import time
 import ezdxf
+from project_io import build_project_payload, save_project_to_file, load_project_from_file, apply_project_payload
+from visualization_service import save_current_view, save_viewport_image
+from simulation_controller import SimulationController
 
 
 class Selector(QtWidgets.QMainWindow, Menuinicio):
@@ -184,6 +185,8 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.blackColor = QColor(0, 0, 0)
         self.blueColor = QColor(0, 0, 255)
 
+        self.simulation_controller = SimulationController(self)
+
     def sobre_programa(self):
         self.pop = About()
         self.pop.resize(555, 333)
@@ -238,10 +241,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         name, _ = QtWidgets.QFileDialog.getOpenFileName(None, 'Abrir proyecto', '*.txt')
         if name == "":
             return
-        with open(name) as f:
-            data = f.read()
-            self.js = json.loads(data)
-            f.close()
+        self.js = load_project_from_file(name)
         self.actualizar_datos(self.js)
         self.llenar_datos()
         self.informar('---PROYECTO IMPORTADO---', color=self.blueColor)
@@ -401,15 +401,12 @@ class mainProgram(QMainWindow, Ui_MainWindow):
     Pasar datos del diccionario (Importar proyecto) a las variables de cálculo
     """
     def actualizar_datos(self, diccionario):
-        self.datos = ["sieve_size", "tpp", "x", "y", "Pagg", "Pporos", "dporo_min", "dporo_max", "r_react",
-                      "dpto_max_aridos",
-                      "dpto_min_aridos", "dpto_max_pasta", "dpto_min_pasta", "Ppto_react_aridos", "Ppto_react_pasta",
-                      "seed"]
-        for n in self.datos:
-            if n in diccionario:
-                setattr(self, str(n), diccionario[n])
-            else:
-                setattr(self, str(n), "")
+        self.datos = [
+            "sieve_size", "tpp", "x", "y", "Pagg", "Pporos", "dporo_min", "dporo_max", "r_react",
+            "dpto_max_aridos", "dpto_min_aridos", "dpto_max_pasta", "dpto_min_pasta",
+            "Ppto_react_aridos", "Ppto_react_pasta", "seed"
+        ]
+        apply_project_payload(self, diccionario)
 
     def guardar_proyecto(self):
         """import json
@@ -419,30 +416,12 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         with open('convert.txt', 'w') as convert_file:
             convert_file.write(json.dumps(details))"""
 
-        self.proyecto = {"sieve_size": self.sieve_size,
-                         "tpp": self.tpp,
-                         "x": self.x,
-                         "y": self.y,
-                         "Pagg": self.Pagg,
-                         "Pporos": self.Pporos,
-                         "dporo_min": self.dporo_min,
-                         "dporo_max": self.dporo_max,
-                         "r_react": self.r_react,
-                         "dpto_max_aridos": self.dpto_max_aridos,
-                         "dpto_min_aridos": self.dpto_min_aridos,
-                         "dpto_max_pasta": self.dpto_max_pasta,
-                         "dpto_min_pasta": self.dpto_min_pasta,
-                         "Ppto_react_aridos": self.Ppto_react_aridos,
-                         "Ppto_react_pasta": self.Ppto_react_pasta,
-                         "seed": self.seed}
+        self.proyecto = build_project_payload(self)
 
         name, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Guardar Proyecto", "", "TXT(*.txt)")
         if name == "":
             return
-        if "." not in name:
-            name += ".txt"
-        with open(name, 'w') as archivo:
-            archivo.write(json.dumps(self.proyecto))
+        save_project_to_file(name, self.proyecto)
         self.informar('---PROYECTO GUARDADO---', color=self.blueColor)
 
     def plotear(self, imagen):
@@ -496,25 +475,6 @@ class mainProgram(QMainWindow, Ui_MainWindow):
 
     def simular(self):
 
-        params = SimParams(
-            sieve_size=self.sieve_size,
-            tpp=self.tpp,
-            x=self.x,
-            y=self.y,
-            Pagg=self.Pagg,
-            Pporos=self.Pporos,
-            dporo_min=self.dporo_min,
-            dporo_max=self.dporo_max,
-            r_react=self.r_react,
-            dpto_max_aridos=self.dpto_max_aridos,
-            dpto_min_aridos=self.dpto_min_aridos,
-            dpto_max_pasta=self.dpto_max_pasta,
-            dpto_min_pasta=self.dpto_min_pasta,
-            Ppto_react_aridos=self.Ppto_react_aridos,
-            Ppto_react_pasta=self.Ppto_react_pasta,
-            seed=self.seed
-        )
-
         if self.cb_semilla.isChecked():
             np.random.seed(self.seed)
         else:
@@ -549,59 +509,11 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.pb_stop.setEnabled(True)
         self.progressBar.setValue(0)
 
-        self.thread = QThread()
-
-        # Crear worker concreto pasando la dataclass (REQUIERE adaptar Worker* para aceptar SimParams)
-        if self.modo == 'circulos':
-            self.worker = WorkerTodos(params,
-                                      todo_correcto=self.todo_correcto,
-                                      check_poros=self.check_poros,
-                                      check_puntos=self.check_puntos,
-                                      check_puntos_aridos=self.check_puntos_aridos,
-                                      check_puntos_pasta=self.check_puntos_pasta)
-        elif self.modo == 'elipses':
-            self.worker = WorkerElipses(params,
-                                        todo_correcto=self.todo_correcto,
-                                        check_poros=self.check_poros,
-                                        check_puntos=self.check_puntos,
-                                        check_puntos_aridos=self.check_puntos_aridos,
-                                        check_puntos_pasta=self.check_puntos_pasta)
-        elif self.modo == 'poligonos':
-            self.worker = WorkerPoligonos(params,
-                                          todo_correcto=self.todo_correcto,
-                                          check_poros=self.check_poros,
-                                          check_puntos=self.check_puntos,
-                                          check_puntos_aridos=self.check_puntos_aridos,
-                                          check_puntos_pasta=self.check_puntos_pasta)
-        else:
-            QtWidgets.QMessageBox.warning(self, "Modo no definido", "Debes seleccionar un modo antes de simular.")
+        try:
+            self.simulation_controller.start()
+        except ValueError as exc:
+            QtWidgets.QMessageBox.warning(self, "Modo no definido", str(exc))
             return
-
-        # self.worker.moveToThread(self.thread)
-        #
-        # self.thread.started.connect(self.worker.simular)
-        # self.worker.finished.connect(self.thread.quit)
-        # self.worker.finished.connect(self.worker.deleteLater)
-        # self.thread.finished.connect(self.thread.deleteLater)
-
-        # Mover worker a hilo usando el helper de WorkerBase
-        self.thread = self.worker.start_on_thread()
-
-        self.worker.progreso.connect(self.mostrar_progreso)
-        self.worker.information.connect(self.informar_worker)
-        self.worker.information_error.connect(self.informar_worker_error)
-        self.worker.imagen.connect(self.plotear)
-        self.worker.pore_list.connect(self.pasar_lista_poros)
-        self.worker.coarse_list.connect(self.pasar_lista_gruesos)
-        self.worker.fine_list.connect(self.pasar_lista_finos)
-        self.worker.reactive_list.connect(self.pasar_lista_reactivos)
-
-        # Iniciar el hilo
-        self.thread.start()
-
-        # Restaurar habilitaciones al terminar
-        self.thread.finished.connect(lambda: self.pb_ejecutar.setEnabled(True))
-        self.thread.finished.connect(lambda: self.pb_stop.setEnabled(False))
 
 
     """
@@ -609,26 +521,10 @@ class mainProgram(QMainWindow, Ui_MainWindow):
     """
 
     def stop(self):
-        # Parada cooperativa: pedir al worker que pare
-        try:
-            if hasattr(self, 'worker') and self.worker is not None:
-                self.worker.stop()
-                # opcional: forzar salida ordenada del hilo después de pedir stop
-                if hasattr(self, 'thread') and self.thread is not None and self.thread.isRunning():
-                    # no bloquear mucho; esperar hasta 2s para terminar
-                    self.thread.quit()
-                    self.thread.wait(2000)
-        except Exception:
-            pass
+        self.simulation_controller.stop()
 
     def stop_simulation(self):
-        if not hasattr(self, 'worker') or self.worker is None:
-            return
-        self.worker.stop()
-        self.pb_stop.setEnabled(False)
-        self.pb_ejecutar.setEnabled(True)
-        self.progressBar.setValue(0)
-        self.informar('Parada solicitada. La simulación terminará en el siguiente punto de control.', color=self.blackColor)
+        self.simulation_controller.stop()
 
     """
     limpiar variables para ejecutar una nueva simulación
@@ -879,11 +775,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         name, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Guardar Imagen", "", "PNG(*.png);;JPEG(*.jpg)")
         if name == "":
             return
-        if "." not in name:
-            name += ".png"
-        pixmap = QtGui.QPixmap(self.dlg.gv_visor.viewport().size())
-        self.dlg.gv_visor.viewport().render(pixmap)
-        pixmap.save(name)
+        save_current_view(self, name)
         self.informar('---IMAGEN GUARDADA---', color=self.blueColor)
 
 
@@ -934,11 +826,7 @@ class Visor_imagen(QtWidgets.QDialog, Ui_Dialog_GV):
         name, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Guardar Imagen", "", "PNG(*.png);;JPEG(*.jpg)")
         if name == "":
             return
-        if "." not in name:
-            name += ".png"
-        pixmap = QtGui.QPixmap(self.gv_visor.viewport().size())
-        self.gv_visor.viewport().render(pixmap)
-        pixmap.save(name)
+        save_viewport_image(self, name)
         """La imagen que se guarda es la visualizada exactamente en el visor. Si la quiero completa he de hacer zoom"""
 
     def cerrar(self):
