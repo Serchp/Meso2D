@@ -31,7 +31,7 @@ import time
 import ezdxf
 from project_io import build_project_payload, save_project_to_file, load_project_from_file, apply_project_payload
 from visualization_service import save_current_view, save_viewport_image
-from simulation_controller import SimulationController
+from src.simulation.orchestration import SimulationController
 
 
 class Selector(QtWidgets.QMainWindow, Menuinicio):
