@@ -29,8 +29,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from dialog_GV import Ui_Dialog_GV
 import time
 import ezdxf
-from project_io import build_project_payload, save_project_to_file, load_project_from_file, apply_project_payload
-from visualization_service import save_current_view, save_viewport_image
+from src.io.project import build_project_payload, save_project_to_file, load_project_from_file, apply_project_payload
+from src.visualization.service import save_current_view, save_viewport_image
 from src.simulation.orchestration import SimulationController
 
 

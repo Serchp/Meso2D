@@ -1,4 +1,4 @@
-from src.io.project import (
+from .project import (
     apply_project_payload,
     build_project_payload,
     load_project_from_file,
