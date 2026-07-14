@@ -1,9 +1,11 @@
 
 from worker_base import WorkerBase, SimParams, SimulationStopped
+import io
 import numpy as np
 from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtGui import QPixmap, QImage
 from matplotlib import pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.collections import PatchCollection
 import random
 from opensimplex import OpenSimplex
@@ -295,7 +297,7 @@ class WorkerTodos(WorkerBase):
                 return False
             return True
 
-        def colocar(lista_radios, lista_datos, lista_circulos, color, progreso_val, mensaje):
+        def colocar(lista_radios, lista_datos, lista_circulos, progreso_val, mensaje):
             while lista_radios:
                 self.check_stop()
                 r = lista_radios[0]
@@ -305,7 +307,7 @@ class WorkerTodos(WorkerBase):
                     dato = [x, y, r]
                     self.lista_aridos.append(dato)
                     lista_datos.append(dato)
-                    circulo = plt.Circle((x, y), r, color=color)
+                    circulo = plt.Circle((x, y), r)
                     self.todos_aridos.append(circulo)
                     lista_circulos.append(circulo)
                     lista_radios.pop(0)
@@ -322,7 +324,7 @@ class WorkerTodos(WorkerBase):
             lista_radios=self.radios_gruesos,
             lista_datos=self.lista_aridos_gruesos,
             lista_circulos=self.todos_aridos_gruesos,
-            color='b',
+            
             progreso_val=30,
             mensaje='Áridos gruesos'
         )
@@ -332,7 +334,7 @@ class WorkerTodos(WorkerBase):
             lista_radios=self.radios_finos,
             lista_datos=self.lista_aridos_finos,
             lista_circulos=self.todos_aridos_finos,
-            color='c',
+            
             progreso_val=32,
             mensaje='Áridos finos'
         )
@@ -392,8 +394,14 @@ class WorkerTodos(WorkerBase):
                 return False
             return True
 
-        def generar_centros_clusters(k):
-            return [(np.random.uniform(0, self.params.x), np.random.uniform(0, self.params.y)) for _ in range(k)]
+        def generar_centros_clusters(k_minimo, sigma=5):
+            radio_influencia = 3 * sigma
+            area_cluster = np.pi * radio_influencia ** 2
+            num_clusters = max(k_minimo, int(np.ceil((self.params.x * self.params.y) / area_cluster)))
+            return [
+                (np.random.uniform(0, self.params.x), np.random.uniform(0, self.params.y))
+                for _ in range(num_clusters)
+            ]
 
         def colocar_con_clusters(lista_radios, lista_guardar, evitar_aridos, poros_puestos, k=5, sigma=5):
             centros = generar_centros_clusters(k)
@@ -447,7 +455,7 @@ class WorkerTodos(WorkerBase):
         self.lista_ptos_react = self.lista_ptos_react_aridos + self.lista_ptos_react_pasta
 
     def plotear_resultados(self):
-        figure, axes = plt.subplots()
+        figure, axes = plt.subplots(dpi=200)
         plt.axis("equal")
         axes.set_xlim(0, self.params.x)
         axes.set_ylim(0, self.params.y)
@@ -456,30 +464,54 @@ class WorkerTodos(WorkerBase):
         Añadir los parches como colecciones para acelerar el render
         """
         if self.todos_poros:
-            poros_collection = PatchCollection(self.todos_poros, color='red')
+            poros_collection = PatchCollection(self.todos_poros, color='red', edgecolor='none')
             axes.add_collection(poros_collection)
 
         if self.todos_aridos_gruesos:
-            aridos_collection = PatchCollection(self.todos_aridos_gruesos, color='b')
+            aridos_collection = PatchCollection(
+                self.todos_aridos_gruesos, 
+                facecolor='lightblue', 
+                edgecolor='blue', 
+                linewidth=0.5,
+                antialiased=True,
+                alpha=0.8
+            )
             axes.add_collection(aridos_collection)
 
         if self.todos_aridos_finos:
-            aridos_collection = PatchCollection(self.todos_aridos_finos, color='c')
+            aridos_collection = PatchCollection(
+                self.todos_aridos_finos,
+                facecolor='lightcyan', 
+                edgecolor='darkblue', 
+                linewidth=0.3,
+                antialiased=True,
+                alpha=0.6
+            )
             axes.add_collection(aridos_collection)
 
         if self.todos_ptos_react:
-            react_collection = PatchCollection(self.todos_ptos_react, color='y')
+            react_collection = PatchCollection(
+                self.todos_ptos_react, 
+                facecolor='yellow', 
+                edgecolor='orange', 
+                linewidth=0.5,
+                alpha=0.9
+            )
             axes.add_collection(react_collection)
 
         """Añadir la probeta (el contorno del dominio)"""
         if self.params.x and self.params.y:
-            probeta = plt.Rectangle((0, 0), self.params.x, self.params.y, color='black', fill=False)
+            probeta = plt.Rectangle((0, 0), self.params.x, self.params.y, color='black', fill=False, linewidth=2)
             axes.add_patch(probeta)
             axes.autoscale_view()
 
-        """Convertir la figura a QPixmap"""
+        """Convertir la figura a QPixmap de alta resolución"""
         canvas = FigureCanvas(figure)
-        self.pixmap = canvas.grab()
+        buf = io.BytesIO()
+        canvas.print_figure(buf, format='png', dpi=600, bbox_inches='tight')
+        buf.seek(0)
+        self.pixmap = QPixmap()
+        self.pixmap.loadFromData(buf.read())
 
         """Emitir las señales"""
         self.imagen.emit(self.pixmap)
@@ -488,30 +520,6 @@ class WorkerTodos(WorkerBase):
         self.fine_list.emit(self.lista_aridos_finos)
         self.reactive_list.emit(self.lista_ptos_react)
         self.finished.emit()
-
-    # def simular(self):
-    #
-    #     print('empieza la simulacion')
-    #     print('está todo correcto? ' + str(self.todo_correcto))
-    #     # self.todo_correcto = False
-    #     if self.todo_correcto:
-    #         print('todo correcto')
-    #         self.dosificacion_sin_extrafinos()
-    #         self.calcular_areas_aridos_sin_extrafinos()
-    #         self.calcular_aridos_por_area_gruesos()
-    #         self.calcular_aridos_por_area_finos()
-    #         # self.calcular_aridos_por_area()
-    #         self.colocar_aridos_finos_y_gruesos()
-    #
-    #         if self.check_poros:
-    #             self.calcular_poros()
-    #             self.colocar_poros()
-    #         if self.check_puntos:
-    #             self.calcular_puntos_sin_extrafinos()
-    #             self.colocar_puntos_sin_extrafinos()
-    #         self.plotear_resultados()
-    #     else:
-    #         self.information_error.emit('--error grave')
 
     def simular(self):
         try:

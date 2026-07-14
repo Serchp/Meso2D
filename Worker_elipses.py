@@ -1,11 +1,13 @@
 
 from worker_base import WorkerBase, SimParams, SimulationStopped
+import io
 import numpy as np
 from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtGui import QPixmap, QImage
 from matplotlib import pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.collections import PatchCollection
-from shapely.geometry import Point
+from shapely.geometry import Point, box
 from shapely import affinity
 from matplotlib.patches import Polygon as MplPolygon
 import random
@@ -87,18 +89,6 @@ class WorkerElipses(WorkerBase):
 
         return np.all(distancias > radios_sumados)
 
-    # def distancias_aridos_ptos(self, lista, coor_x, coor_y, radio):
-    #     if not lista:
-    #         return False  # No hay solapamiento si no hay elementos
-    #
-    #     lista_np = np.array(lista)  # Asume que cada n es [x, y, r]
-    #     dx = lista_np[:, 0] - coor_x
-    #     dy = lista_np[:, 1] - coor_y
-    #     distancias = np.sqrt(dx ** 2 + dy ** 2)
-    #     radios_sumados = radio + lista_np[:, 2]
-    #
-    #     return np.any(distancias < radios_sumados)
-
     def distancias_aridos_ptos(self, lista, coor_x, coor_y, radio):
         """
         Devuelve True si el nuevo punto (coor_x, coor_y, radio) intersecta con
@@ -147,7 +137,7 @@ class WorkerElipses(WorkerBase):
         return False
 
     def distancias_poros_elipses(self, x, y, radio, lista_elipses):
-        poro = Point(x, y).buffer(radio)
+        poro = Point(x, y).buffer(radio, resolution=64)
         return all(not elipse.intersects(poro) for elipse in lista_elipses)
 
     def calcular_poros(self):
@@ -244,31 +234,6 @@ class WorkerElipses(WorkerBase):
         print('la Aagg de los gruesos es ' + str([round(a, 2) for a in self.Aagg_gruesos]))
         print('la Aagg de los finos es ' + str([round(a, 2) for a in self.Aagg_finos]))
 
-    # def calcular_aridos_por_area_gruesos(self):
-    #     """Calcular los áridos por fracción gruesa"""
-    #     j = 0
-    #     while j < len(self.Aagg_gruesos):
-    #         num_particulas = 0
-    #         area_c = 0
-    #         self.Aagg_gruesos[j] = self.Aagg_gruesos[j] + self.A_remanente
-    #         while self.Aagg_gruesos[j] - area_c > np.pi * (self.sieve_size_buena[j + 1] / 2) ** 2:
-    #             d = self.sieve_size_buena[j + 1] + np.random.rand() * (self.sieve_size_buena[j] - self.sieve_size_buena[j + 1])
-    #             a = d / 2 # semieje mayor
-    #             aspecto = np.random.uniform(0.5, 1.0) # relación de aspecto aleatoria
-    #             b = a * aspecto # semieje menor
-    #             area = np.pi * a * b
-    #             if area + area_c < self.Aagg_gruesos[j]:
-    #                 area_c = area_c + area
-    #                 self.radios_gruesos_elipses.append((a, b)) # guardamos ambos semiejes
-    #                 num_particulas = num_particulas + 1
-    #             self.A_remanente = self.Aagg_gruesos[j] - area_c
-    #         self.particulas.append(num_particulas)
-    #         print(self.particulas)
-    #         if j < len(self.Aagg_gruesos):
-    #             j += 1
-    #     self.progreso.emit(20)
-    #     self.information.emit('Áridos gruesos (elípticos) por área calculados. ' + str(self.particulas))
-
     def calcular_aridos_por_area_gruesos(self):
         """Calcular los áridos por fracción gruesa"""
         j = 0
@@ -296,34 +261,6 @@ class WorkerElipses(WorkerBase):
         self.progreso.emit(20)
         self.information.emit('Áridos gruesos (elípticos) por área calculados. ' + str(self.particulas))
         print('la lista de áridos gruesos es ' + str(self.lista_aridos_gruesos))
-
-    # def calcular_aridos_por_area_finos(self):
-    #     """Calcular los áridos por fracción fina"""
-    #     k = len(self.Aagg_gruesos)
-    #     l = 0
-    #     while l < len(self.Aagg_finos):
-    #         num_particulas = 0
-    #         area_c = 0
-    #         self.Aagg_finos[l] = self.Aagg_finos[l] + self.A_remanente
-    #         while self.Aagg_finos[l] - area_c > np.pi * (self.sieve_size[k + 1] / 2) ** 2:
-    #             d = self.sieve_size[k + 1] + np.random.rand() * (self.sieve_size[k] - self.sieve_size[k + 1])
-    #             a = d / 2 # semieje mayor
-    #             aspecto = np.random.uniform(0.5, 1.0) # relación de aspecto aleatoria
-    #             b = a * aspecto # semieje menor
-    #             area = np.pi * a * b
-    #             if area + area_c < self.Aagg_finos[l]:
-    #                 area_c = area_c + area
-    #                 self.radios_finos_elipses.append((a, b)) # guardamos ambos semiejes
-    #                 num_particulas = num_particulas + 1
-    #             self.A_remanente = self.Aagg_finos[l] - area_c
-    #         self.particulas.append(num_particulas)
-    #         print(self.particulas)
-    #         if l < len(self.Aagg_finos):
-    #             l += 1
-    #             k += 1
-    #             print('un fino')
-    #     self.progreso.emit(22)
-    #     self.information.emit('Áridos finos  (elípticos) por área calculados. ' + str(self.particulas))
 
     def calcular_aridos_por_area_finos(self):
         """Calcular los áridos por fracción fina"""
@@ -356,7 +293,7 @@ class WorkerElipses(WorkerBase):
         self.information.emit('Áridos finos  (elípticos) por área calculados. ' + str(self.particulas))
 
     def generar_elipse_shapely(self,x, y, a, b, angulo):
-        circ = Point(x, y).buffer(1)  # Círculo unitario centrado
+        circ = Point(x, y).buffer(1, resolution=64)  # Círculo unitario centrado
         elipse = affinity.scale(circ, a, b)  # Escala a elipse
         elipse = affinity.rotate(elipse, angulo, origin=(x, y))
         return elipse
@@ -449,60 +386,76 @@ class WorkerElipses(WorkerBase):
         )
 
     def colocar_aridos_finos_y_gruesos(self):
-        def dentro_de_limites(x, y, a, b):
-            """Verifica que la elipse esté completamente dentro del dominio"""
-            return a < x < self.params.x - a and b < y < self.params.y - b
+        dominio = box(0, 0, self.params.x, self.params.y)
 
-        def generar_elipse_shapely(x, y, a, b, angulo):
-            circ = Point(x, y).buffer(1)
-            elipse = affinity.scale(circ, a, b)
-            return affinity.rotate(elipse, angulo, origin=(x, y))
+        def limpio(geom):
+            if geom is None:
+                return None
+            if not geom.is_valid:
+                geom = geom.buffer(0)
+            if geom.is_empty:
+                return None
+            return geom
 
-        def colisiona_con_lista(elipse, lista):
-            """Determina si la elipse colisiona con alguna de la lista de elipses existentes.
-            Si al menos una colisiona, devuelve True; si ninguna colisiona, devuelve False"""
-            return any(elipse.intersects(e) for e in lista)
+        def colisiona_con_lista(geom, lista):
+            return any(geom.intersects(e) for e in lista)
 
-        def intentar_colocar_elipse(x, y, a, b, lista_existente, poros_puestos):
-            if not dentro_de_limites(x, y, a, b):
-                return False  # Fuera de dominio
+        def colocar(lista_ab, lista_datos, lista_elipses, progreso_val, mensaje):
+            intentos_maximos = 3000
+            colocadas = 0
 
-            for angulo in range(0, 181):
-                nueva_elipse = generar_elipse_shapely(x, y, a, b, angulo)
-
-                if poros_puestos and colisiona_con_lista(nueva_elipse, self.lista_poros):
-                    continue
-                if lista_existente and colisiona_con_lista(nueva_elipse, lista_existente):
-                    continue
-
-                return nueva_elipse, [x, y, a, b, angulo]
-
-            return None  # No pudo colocarse sin colisión
-
-        def colocar(lista_ab, lista_datos, lista_elipses, color, progreso_val, mensaje):
             while lista_ab:
+                self.check_stop()
                 a, b = lista_ab[0]
-                x = np.random.uniform(0, self.params.x)
-                y = np.random.uniform(0, self.params.y)
-                resultado = intentar_colocar_elipse(x, y, a, b, self.lista_aridos, self.poros_puestos)
-                if resultado:
-                    elipse_shapely, datos = resultado
-                    self.lista_aridos.append(elipse_shapely)
-                    lista_datos.append(datos)
-                    lista_elipses.append(elipse_shapely)
+                colocada = False
+
+                for _ in range(intentos_maximos):
+                    self.check_stop()
+                    x = np.random.uniform(0, self.params.x)
+                    y = np.random.uniform(0, self.params.y)
+                    angulo = np.random.uniform(0, 360)
+
+                    candidata = self.generar_elipse_shapely(x, y, a, b, angulo)
+                    candidata = limpio(candidata)
+                    if candidata is None:
+                        continue
+
+                    if not dominio.contains(candidata):
+                        continue
+                    if colisiona_con_lista(candidata, self.lista_aridos):
+                        continue
+                    if self.lista_poros and colisiona_con_lista(candidata, self.lista_poros):
+                        continue
+
+                    self.lista_aridos.append(candidata)
+                    lista_datos.append([x, y, a, b, angulo])
+                    lista_elipses.append(candidata)
                     lista_ab.pop(0)
                     self.aridos_puestos = True
+                    colocadas += 1
+                    colocada = True
+                    break
+
+                if not colocada:
+                    # Evita bucles infinitos en dominios saturados.
+                    lista_ab.pop(0)
 
             print(f'Tengo tantas elipses: {len(self.lista_aridos)}')
             self.progreso.emit(progreso_val)
-            self.information.emit(f'{mensaje} colocadas. {len(lista_datos)}')
+            self.information.emit(f'{mensaje} colocadas. {colocadas}')
+
+        self.lista_aridos = []
+        self.todos_aridos_gruesos = []
+        self.todos_aridos_finos = []
+        self.lista_aridos_gruesos = []
+        self.lista_aridos_finos = []
+        self.aridos_puestos = False
 
         # Colocar áridos gruesos (elipses)
         colocar(
             lista_ab=self.radios_gruesos_elipses,
             lista_datos=self.lista_aridos_gruesos,
-            lista_elipses= self.todos_aridos_gruesos,
-            color='b',
+            lista_elipses=self.todos_aridos_gruesos,
             progreso_val=30,
             mensaje='Áridos gruesos'
         )
@@ -512,121 +465,9 @@ class WorkerElipses(WorkerBase):
             lista_ab=self.radios_finos_elipses,
             lista_datos=self.lista_aridos_finos,
             lista_elipses=self.todos_aridos_finos,
-            color='c',
             progreso_val=32,
             mensaje='Áridos finos'
         )
-
-    # def colocar_aridos_finos_y_gruesos(self):
-    #     def dentro_de_limites(x, y, a, b):
-    #         """Verifica que la elipse esté completamente dentro del dominio."""
-    #         return max(a, b) < x < self.x - max(a, b) and max(a, b) < y < self.y - max(a, b)
-    #
-    #     def intentar_colocar_elipse(x, y, a, b):
-    #         if not dentro_de_limites(x, y, a, b):
-    #             return False
-    #         if self.poros_puestos and not self.distancias_elipses(self.lista_poros, x, y, a, b):
-    #             return False
-    #         if self.lista_aridos and not self.distancias_elipses(self.lista_aridos, x, y, a, b):
-    #             return False
-    #         return True
-    #
-    #     def colocar(lista_radios, lista_datos, lista_elipses, color, progreso_val, mensaje):
-    #         while lista_radios:
-    #             a, b = lista_radios[0]
-    #             x = np.random.uniform(0, self.x)
-    #             y = np.random.uniform(0, self.y)
-    #             if intentar_colocar_elipse(x, y, a, b):
-    #                 dato = [x, y, a, b, 0]  # Se guarda con rotación inicial 0°
-    #                 self.lista_aridos.append(dato)
-    #                 lista_datos.append(dato)
-    #                 ellipse = plt.Circle((x, y), max(a, b),
-    #                                      color=color)  # Puedes cambiar por matplotlib.patches.Ellipse si quieres visualización real
-    #                 self.todos_aridos.append(ellipse)
-    #                 lista_elipses.append(ellipse)
-    #                 lista_radios.pop(0)
-    #                 self.aridos_puestos = True
-    #
-    #         print(f'tengo tantos áridos: {len(self.lista_aridos)}')
-    #         print(len(self.todos_aridos))
-    #         print(f'Elipses restantes: {len(lista_radios)}')
-    #         self.progreso.emit(progreso_val)
-    #         self.information.emit(f'{mensaje} colocados. {len(lista_datos)}')
-    #
-    #     # Colocar áridos gruesos elípticos
-    #     colocar(
-    #         self.radios_gruesos_elipses,
-    #         self.lista_aridos_gruesos,
-    #         self.todos_aridos_gruesos,
-    #         color='b',
-    #         progreso_val=30,
-    #         mensaje='Áridos gruesos elípticos'
-    #     )
-    #
-    #     # Colocar áridos finos elípticos
-    #     colocar(
-    #         self.radios_finos_elipses,
-    #         self.lista_aridos_finos,
-    #         self.todos_aridos_finos,
-    #         color='c',
-    #         progreso_val=32,
-    #         mensaje='Áridos finos elípticos'
-    #     )
-    #
-    # def colocar_aridos_finos_y_gruesos(self):
-    #     def dentro_de_limites(x, y, r):
-    #         """Verifica que el árido esté completamente dentro del dominio"""
-    #         return r < x < self.x - r and r < y < self.y - r
-    #
-    #     def intentar_colocar_arido(x, y, r, lista_existente, poros_puestos):
-    #         if not dentro_de_limites(x, y, r):
-    #             return False
-    #         if poros_puestos and not self.distancias(self.lista_poros, x, y, r):
-    #             return False
-    #         if lista_existente and not self.distancias(lista_existente, x, y, r):
-    #             return False
-    #         return True
-    #
-    #     def colocar(lista_radios, lista_datos, lista_circulos, color, progreso_val, mensaje):
-    #         while lista_radios:
-    #             r = lista_radios[0]
-    #             x = np.random.uniform(0, self.x)
-    #             y = np.random.uniform(0, self.y)
-    #             if intentar_colocar_arido(x, y, r, self.lista_aridos, self.poros_puestos):
-    #                 dato = [x, y, r]
-    #                 self.lista_aridos.append(dato)
-    #                 lista_datos.append(dato)
-    #                 circulo = plt.Circle((x, y), r, color=color)
-    #                 self.todos_aridos.append(circulo)
-    #                 lista_circulos.append(circulo)
-    #                 lista_radios.pop(0)
-    #                 self.aridos_puestos = True
-    #
-    #         print(f'tengo tantos áridos: {len(self.lista_aridos)}')
-    #         print(len(self.todos_aridos))
-    #         print(f'Radios restantes: {len(lista_radios)}')
-    #         self.progreso.emit(progreso_val)
-    #         self.information.emit(f'{mensaje} colocados. {len(lista_datos)}')
-    #
-    #     # Colocar áridos gruesos
-    #     colocar(
-    #         lista_radios=self.radios_gruesos,
-    #         lista_datos=self.lista_aridos_gruesos,
-    #         lista_circulos=self.todos_aridos_gruesos,
-    #         color='b',
-    #         progreso_val=30,
-    #         mensaje='Áridos gruesos'
-    #     )
-    #
-    #     # Colocar áridos finos
-    #     colocar(
-    #         lista_radios=self.radios_finos,
-    #         lista_datos=self.lista_aridos_finos,
-    #         lista_circulos=self.todos_aridos_finos,
-    #         color='c',
-    #         progreso_val=32,
-    #         mensaje='Áridos finos'
-    #     )
 
     def calcular_puntos_sin_extrafinos(self):
         """puntos sobre áridos gruesos"""
@@ -665,98 +506,6 @@ class WorkerElipses(WorkerBase):
             self.progreso.emit(60)
             self.information.emit('Puntos reactivos sobre la pasta calculados')
 
-    # def colocar_puntos_sin_extrafinos(self):
-    #         def dentro_de_limites(x, y, r):
-    #             """equivalente a if loc_pto_x + r < self.x and loc_pto_x - r > 0
-    #             and loc_pto_y + r < self.y and loc_pto_y - r > 0:
-    #             pero más legible"""
-    #             return r < x < self.x - r and r < y < self.y - r
-    #
-    #         def intentar_colocar_punto(x, y, r, lista_existente, evitar_aridos, poros_puestos):
-    #             if not dentro_de_limites(x, y, r):
-    #                 return False
-    #             if poros_puestos and not self.distancias(self.lista_poros, x, y, r):
-    #                 return False
-    #             if evitar_aridos and not self.distancias(self.lista_aridos_gruesos, x, y, r):
-    #                 return False
-    #             if not evitar_aridos and not self.distancias_aridos_ptos(self.lista_aridos_gruesos, x, y, r):
-    #                 return False
-    #             if len(lista_existente) > 0 and not self.distancias(lista_existente, x, y, r):
-    #                 return False
-    #             return True
-    #
-    #         def colocar(lista_radios, lista_guardar, evitar_aridos, poros_puestos):
-    #             while lista_radios:
-    #                 r = lista_radios[0]
-    #                 x = np.random.uniform(0, self.x)
-    #                 y = np.random.uniform(0, self.y)
-    #                 if intentar_colocar_punto(x, y, r, lista_guardar, evitar_aridos, poros_puestos):
-    #                     lista_guardar.append([x, y, r])
-    #                     self.todos_ptos_react.append(plt.Circle((x, y), r, color='y'))
-    #                     lista_radios.pop(0)
-    #
-    #         # Colocar puntos sobre áridos
-    #         colocar(self.radios_puntos_aridos, self.lista_ptos_react_aridos,
-    #                 evitar_aridos=False, poros_puestos=self.poros_puestos)
-    #
-    #         self.progreso.emit(65)
-    #         if self.check_puntos_aridos:
-    #             self.information.emit('Puntos reactivos sobre los áridos colocados')
-    #
-    #         # Colocar puntos sobre pasta
-    #         colocar(self.radios_puntos_pasta, self.lista_ptos_react_pasta,
-    #                 evitar_aridos=True, poros_puestos=self.poros_puestos)
-    #
-    #         self.progreso.emit(70)
-    #         if self.check_puntos_pasta:
-    #             self.information.emit('Puntos reactivos sobre la pasta colocados')
-    #
-    #         self.lista_ptos_react = self.lista_ptos_react_aridos + self.lista_ptos_react_pasta
-
-    # def plotear_resultados(self):
-    #     figure, axes = plt.subplots()
-    #     plt.axis("equal")
-    #     axes.set_xlim(0, self.x)
-    #     axes.set_ylim(0, self.y)
-    #
-    #     """
-    #     Añadir los parches como colecciones para acelerar el render
-    #     """
-    #     if self.todos_poros:
-    #         poros_collection = PatchCollection(self.todos_poros, color='red')
-    #         axes.add_collection(poros_collection)
-    #
-    #     if self.todos_aridos_gruesos:
-    #         aridos_collection = PatchCollection(self.todos_aridos_gruesos, color='b')
-    #         axes.add_collection(aridos_collection)
-    #
-    #     if self.todos_aridos_finos:
-    #         aridos_collection = PatchCollection(self.todos_aridos_finos, color='c')
-    #         axes.add_collection(aridos_collection)
-    #
-    #     if self.todos_ptos_react:
-    #         react_collection = PatchCollection(self.todos_ptos_react, color='y')
-    #         axes.add_collection(react_collection)
-    #
-    #     """Añadir la probeta (el contorno del dominio)"""
-    #     if self.x and self.y:
-    #         probeta = plt.Rectangle((0, 0), self.x, self.y, color='black', fill=False)
-    #         axes.add_patch(probeta)
-    #         axes.autoscale_view()
-    #
-    #     """Convertir la figura a QPixmap"""
-    #     canvas = FigureCanvas(figure)
-    #     self.pixmap = canvas.grab()
-    #
-    #     """Emitir las señales"""
-    #     self.imagen.emit(self.pixmap)
-    #     self.pore_list.emit(self.lista_poros)
-    #     self.coarse_list.emit(self.lista_aridos_gruesos)
-    #     self.fine_list.emit(self.lista_aridos_finos)
-    #     self.reactive_list.emit(self.lista_ptos_react)
-    #     self.finished.emit()
-
-
     def colocar_puntos_sin_extrafinos(self):
         """Coloca los puntos reactivos sobre los áridos y la pasta, utilizando clusters para los áridos y ruido Simplex para la pasta."""
         def dentro_de_limites(x, y, r):
@@ -775,8 +524,14 @@ class WorkerElipses(WorkerBase):
                 return False
             return True
 
-        def generar_centros_clusters(k):
-            return [(np.random.uniform(0, self.params.x), np.random.uniform(0, self.params.y)) for _ in range(k)]
+        def generar_centros_clusters(k_minimo, sigma=5):
+            radio_influencia = 3 * sigma
+            area_cluster = np.pi * radio_influencia ** 2
+            num_clusters = max(k_minimo, int(np.ceil((self.params.x * self.params.y) / area_cluster)))
+            return [
+                (np.random.uniform(0, self.params.x), np.random.uniform(0, self.params.y))
+                for _ in range(num_clusters)
+            ]
 
         def colocar_con_clusters(lista_radios, lista_guardar, evitar_aridos, poros_puestos, k=5, sigma=5):
             centros = generar_centros_clusters(k)
@@ -839,63 +594,67 @@ class WorkerElipses(WorkerBase):
 
         """Añadir colecciones de parches"""
         if self.todos_poros:
-            poros_collection = PatchCollection(self.todos_poros, color='red')
+            poros_collection = PatchCollection(self.todos_poros, color='red', edgecolor='none')
             axes.add_collection(poros_collection)
 
         if self.todos_aridos_gruesos:
             patches_gruesos = [shapely_to_patch(e) for e in self.todos_aridos_gruesos]
-            aridos_collection = PatchCollection(patches_gruesos, color='b')
+            aridos_collection = PatchCollection(
+                patches_gruesos, 
+                facecolor='lightblue', 
+                edgecolor='blue', 
+                linewidth=0.5,
+                antialiased=True,
+                alpha=0.8
+            )
             axes.add_collection(aridos_collection)
 
         if self.todos_aridos_finos:
             patches_finos = [shapely_to_patch(e) for e in self.todos_aridos_finos]
-            aridos_collection = PatchCollection(patches_finos, color='c')
+            aridos_collection = PatchCollection(
+                patches_finos, 
+                facecolor='lightcyan', 
+                edgecolor='darkblue', 
+                linewidth=0.3,
+                antialiased=True,
+                alpha=0.6
+            )
             axes.add_collection(aridos_collection)
 
         if self.todos_ptos_react:
-            react_collection = PatchCollection(self.todos_ptos_react, color='y')
+            react_collection = PatchCollection(
+                self.todos_ptos_react, 
+                facecolor='yellow', 
+                edgecolor='orange', 
+                linewidth=0.5,
+                alpha=0.9
+            )
             axes.add_collection(react_collection)
 
         """Dibujar el contorno de la probeta"""
         if self.params.x and self.params.y:
-            probeta = plt.Rectangle((0, 0), self.params.x, self.params.y, color='black', fill=False)
+            probeta = plt.Rectangle((0, 0), self.params.x, self.params.y, color='black', fill=False, linewidth=2)
             axes.add_patch(probeta)
             axes.autoscale_view()
 
-        """Convertir figura a QPixmap"""
+        """Convertir figura a QPixmap de alta resolución"""
         canvas = FigureCanvas(figure)
-        self.pixmap = canvas.grab()
+        buf = io.BytesIO()
+        canvas.print_figure(buf, format='png', dpi=600, bbox_inches='tight')
+        buf.seek(0)
+        self.pixmap = QPixmap()
+        self.pixmap.loadFromData(buf.read())
 
-        """Emitir señales"""
-        self.imagen.emit(self.pixmap)
+        """Emitir señales
+
+        Primero listas y después imagen para evitar exportación con datos desfasados.
+        """
         self.pore_list.emit(self.lista_poros)
         self.coarse_list.emit(self.lista_aridos_gruesos)
         self.fine_list.emit(self.lista_aridos_finos)
         self.reactive_list.emit(self.lista_ptos_react)
+        self.imagen.emit(self.pixmap)
         self.finished.emit()
-
-    # def simular(self):
-    #
-    #     print('empieza la simulacion')
-    #     print('está todo correcto? ' + str(self.todo_correcto))
-    #     # self.todo_correcto = False
-    #     if self.todo_correcto:
-    #         print('todo correcto')
-    #         self.dosificacion_sin_extrafinos()
-    #         self.calcular_areas_aridos_sin_extrafinos()
-    #         self.calcular_aridos_por_area_gruesos()
-    #         self.calcular_aridos_por_area_finos()
-    #         self.colocar_aridos_finos_y_gruesos()
-    #
-    #         if self.check_poros:
-    #             self.calcular_poros()
-    #             self.colocar_poros()
-    #         if self.check_puntos:
-    #             self.calcular_puntos_sin_extrafinos()
-    #             self.colocar_puntos_sin_extrafinos()
-    #         self.plotear_resultados()
-    #     else:
-    #         self.information_error.emit('--error grave')
 
     def simular(self):
         try:

@@ -687,6 +687,8 @@ class mainProgram(QMainWindow, Ui_MainWindow):
             self.exportar_estructura_circulos()
         elif self.modo == "elipses":
             self.exportar_estructura_elipses()
+        elif self.modo == "poligonos":
+            self.exportar_estructura_poligonos()
         else:
             QtWidgets.QMessageBox.warning(self, "Modo no definido", "Debes seleccionar un modo antes de exportar.")
 
@@ -767,8 +769,64 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         doc.saveas(name)
         self.informar('---ESTRUCTURA EXPORTADA---', color=self.blueColor)
 
+    def exportar_estructura_poligonos(self):
+        name, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Exportar Estructura", "", "DXF(*.dxf)")
+        if name == "":
+            return
+        if "." not in name:
+            name += ".dxf"
+
+        doc = ezdxf.new()
+        doc.layers.new(name='Poros')
+        doc.layers.new(name='Aridos gruesos')
+        doc.layers.new(name='Aridos finos')
+        doc.layers.new(name='Ptos_reactivos')
+        msp = doc.modelspace()
+
+        # Exportar poros (círculos)
+        for poro in self.lista_poros:
+            if isinstance(poro, (list, tuple)) and len(poro) >= 3:
+                msp.add_circle([poro[0], poro[1]], poro[2], dxfattribs={'layer': 'Poros'})
+            elif hasattr(poro, "exterior"):
+                pts = list(poro.exterior.coords)
+                if len(pts) > 1 and pts[0] == pts[-1]:
+                    pts = pts[:-1]
+                if len(pts) >= 3:
+                    msp.add_lwpolyline(pts, close=True, dxfattribs={'layer': 'Poros'})
+
+        # Exportar áridos (acepta Polygon Shapely o listas de vértices)
+        def extraer_vertices_poligono(obj):
+            if hasattr(obj, "exterior"):
+                pts = list(obj.exterior.coords)
+            elif isinstance(obj, (list, tuple)) and len(obj) >= 3 and all(
+                    isinstance(p, (list, tuple)) and len(p) >= 2 for p in obj):
+                pts = [(p[0], p[1]) for p in obj]
+            else:
+                return None
+
+            if len(pts) > 1 and pts[0] == pts[-1]:
+                pts = pts[:-1]
+            if len(pts) < 3:
+                return None
+            return pts
+
+        for polygon in self.lista_aridos_gruesos:
+            pts = extraer_vertices_poligono(polygon)
+            if pts is not None:
+                msp.add_lwpolyline(pts, close=True, dxfattribs={'layer': 'Aridos gruesos'})
+
+        for polygon in self.lista_aridos_finos:
+            pts = extraer_vertices_poligono(polygon)
+            if pts is not None:
+                msp.add_lwpolyline(pts, close=True, dxfattribs={'layer': 'Aridos finos'})
+
+        # Exportar puntos reactivos (círculos)
+        for pkreactivo in self.lista_ptos_react:
+            msp.add_circle([pkreactivo[0], pkreactivo[1]], pkreactivo[2], dxfattribs={'layer': 'Ptos_reactivos'})
+
+        doc.saveas(name)
+        self.informar('---ESTRUCTURA EXPORTADA---', color=self.blueColor)
     """
-    Guardar la imagen de la estructura desde el menú
     Se guarda completa, sin el zoom
     """
     def guardar_imagen(self):
@@ -843,12 +901,6 @@ class Controlador:
         self.mainprogram = mainProgram(modo)
         self.mainprogram.show()
 
-
-# if __name__ == "__main__":
-#     app = QApplication(sys.argv)
-#     window = Selector()
-#     window.show()
-#     sys.exit(app.exec_())
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
