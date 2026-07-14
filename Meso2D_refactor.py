@@ -12,9 +12,9 @@ Versión creada para probar refactorización del código
 La clase worker trasladada a un archivo a parte e importada aquí
 """
 import json
-from Main03 import Ui_MainWindow
-from Main_inicio import Ui_MainWindow as Menuinicio
-from GV import MiGraphicsView
+from src.ui.Main03 import Ui_MainWindow
+from src.ui.Main_inicio import Ui_MainWindow as Menuinicio
+from src.ui.GV import MiGraphicsView
 # from Worker import WorkerTodos
 from worker_base import SimParams
 from simulation_service import create_worker
@@ -26,7 +26,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PyQt5 import QtCore, QtGui, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, NavigationToolbar2QT as NavigationToolbar
-from dialog_GV import Ui_Dialog_GV
+from src.ui.dialog_GV import Ui_Dialog_GV
 import time
 import ezdxf
 from src.io.project import build_project_payload, save_project_to_file, load_project_from_file, apply_project_payload
