@@ -16,8 +16,6 @@ from src.ui.Main03 import Ui_MainWindow
 from src.ui.Main_inicio import Ui_MainWindow as Menuinicio
 from src.ui.GV import MiGraphicsView
 # from Worker import WorkerTodos
-from worker_base import SimParams
-from simulation_service import create_worker
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal, QObject, QThread, QFileInfo, Qt, QDate, QPropertyAnimation, QPointF
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog, QTableWidget, QTableWidgetItem, QVBoxLayout

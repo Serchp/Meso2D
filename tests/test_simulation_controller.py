@@ -4,7 +4,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from simulation_controller import SimulationController
+from src.simulation.orchestration import SimulationController
 
 
 class DummyWidget:
