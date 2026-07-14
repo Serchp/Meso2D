@@ -83,12 +83,6 @@ class WorkerPoligonos(WorkerBase):
     """
 
     def distancias(self, lista_geometrias, x, y, r):
-        """Verifica que un nuevo círculo no colisione con ninguna geometría en la lista"""
-        nuevo_circulo = Point(x, y).buffer(r)
-        # return all(not nuevo_circulo.intersects(geom) for geom in lista_geometrias)
-        return all(not nuevo_circulo.intersects(Point(g[0], g[1]).buffer(g[2])) for g in lista_geometrias)
-
-    def distancias(self, lista_geometrias, x, y, r):
         nuevo_circulo = Point(x, y).buffer(r)
         resultado = []
         for g in lista_geometrias:

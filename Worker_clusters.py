@@ -239,50 +239,6 @@ class WorkerTodos(WorkerBase):
         self.progreso.emit(22)
         self.information.emit('Áridos finos por área calculados. ' + str(self.particulas))
 
-    def calcular_aridos_por_area(self):
-        """Calcula los áridos circulares por área para fracciones gruesas y finas."""
-
-        def calcular_para_fraccion(Aagg, radios_lista, sieve, inicio_idx):
-            for i in range(len(Aagg)):
-                Aagg[i] += self.A_remanente
-                area_acumulada = 0
-                num_particulas = 0
-
-                while Aagg[i] - area_acumulada > np.pi * (sieve[inicio_idx + 1] / 2) ** 2:
-                    d = sieve[inicio_idx + 1] + np.random.rand() * (sieve[inicio_idx] - sieve[inicio_idx + 1])
-                    radio = d / 2
-                    area = np.pi * radio ** 2
-
-                    if area_acumulada + area < Aagg[i]:
-                        area_acumulada += area
-                        radios_lista.append(radio)
-                        num_particulas += 1
-
-                    self.A_remanente = Aagg[i] - area_acumulada
-
-                self.particulas.append(num_particulas)
-
-        # Áridos gruesos
-        calcular_para_fraccion(
-            Aagg=self.Aagg_gruesos,
-            radios_lista=self.radios_gruesos,
-            sieve=self.sieve_size_buena,
-            inicio_idx=0
-        )
-        self.progreso.emit(20)
-        self.information.emit('Áridos gruesos por área calculados. ' + str(self.particulas))
-
-        # Áridos finos
-        inicio_finos = len(self.Aagg_gruesos)
-        calcular_para_fraccion(
-            Aagg=self.Aagg_finos,
-            radios_lista=self.radios_finos,
-            sieve=self.sieve_size,
-            inicio_idx=inicio_finos
-        )
-        self.progreso.emit(22)
-        self.information.emit('Áridos finos por área calculados. ' + str(self.particulas))
-
     def colocar_aridos_finos_y_gruesos(self):
         def dentro_de_limites(x, y, r):
             """Verifica que el árido esté completamente dentro del dominio"""
