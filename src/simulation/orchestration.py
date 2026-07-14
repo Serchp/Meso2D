@@ -4,9 +4,7 @@ from typing import List, Optional
 from PyQt5 import QtWidgets
 
 from worker_base import SimParams
-from Worker_clusters import WorkerTodos
-from Worker_elipses import WorkerElipses
-from Worker_poligonos import WorkerPoligonos
+from src.workers import WorkerTodos, WorkerElipses, WorkerPoligonos
 
 
 @dataclass
