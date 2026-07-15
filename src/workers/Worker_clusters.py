@@ -536,7 +536,7 @@ class WorkerTodos(WorkerBase):
             self.pore_list.emit(getattr(self, "lista_poros", []))
             self.coarse_list.emit(getattr(self, "lista_aridos_gruesos", []))
             self.fine_list.emit(getattr(self, "lista_aridos_finos", []))
-            self.reactive_list.emit(getattr(self, "lista_puntos", []))
+            self.reactive_list.emit(getattr(self, "lista_ptos_react", []))
 
             self.information.emit("Simulación finalizada correctamente.")
             self.progreso.emit(100)

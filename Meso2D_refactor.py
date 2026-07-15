@@ -28,6 +28,7 @@ from src.ui.dialog_GV import Ui_Dialog_GV
 import time
 import ezdxf
 from src.io.project import build_project_payload, save_project_to_file, load_project_from_file, apply_project_payload
+from src.io.structure_export import export_structure_file, StructureExportError
 from src.visualization.service import save_current_view, save_viewport_image
 from src.simulation.orchestration import SimulationController
 
@@ -681,14 +682,36 @@ class mainProgram(QMainWindow, Ui_MainWindow):
     """
 
     def exportar_estructura(self):
-        if self.modo == "circulos":
-            self.exportar_estructura_circulos()
-        elif self.modo == "elipses":
-            self.exportar_estructura_elipses()
-        elif self.modo == "poligonos":
-            self.exportar_estructura_poligonos()
-        else:
+        if self.modo not in ("circulos", "elipses", "poligonos"):
             QtWidgets.QMessageBox.warning(self, "Modo no definido", "Debes seleccionar un modo antes de exportar.")
+            return
+
+        filtros = "DXF (*.dxf);;SVG (*.svg);;JSON (*.json);;Gmsh GEO (*.geo)"
+        name, selected_filter = QtWidgets.QFileDialog.getSaveFileName(None, "Exportar Estructura", "", filtros)
+        if name == "":
+            return
+
+        domain = {
+            "x": float(self.x) if self.x else None,
+            "y": float(self.y) if self.y else None,
+        }
+
+        try:
+            export_structure_file(
+                path=name,
+                selected_filter=selected_filter,
+                modo=self.modo,
+                lista_poros=self.lista_poros,
+                lista_aridos_gruesos=self.lista_aridos_gruesos,
+                lista_aridos_finos=self.lista_aridos_finos,
+                lista_ptos_react=self.lista_ptos_react,
+                domain=domain,
+            )
+            self.informar('---ESTRUCTURA EXPORTADA---', color=self.blueColor)
+        except StructureExportError as exc:
+            QtWidgets.QMessageBox.warning(self, "Error de exportación", str(exc))
+        except Exception as exc:
+            QtWidgets.QMessageBox.warning(self, "Error de exportación", f"No se pudo exportar la estructura: {exc}")
 
     def exportar_estructura_circulos(self):
         print(self.lista_poros)
@@ -828,10 +851,11 @@ class mainProgram(QMainWindow, Ui_MainWindow):
     Se guarda completa, sin el zoom
     """
     def guardar_imagen(self):
-        name, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Guardar Imagen", "", "PNG(*.png);;JPEG(*.jpg)")
+        filtros = "PNG (*.png);;JPEG (*.jpg);;TIFF (*.tiff);;BMP (*.bmp)"
+        name, selected_filter = QtWidgets.QFileDialog.getSaveFileName(None, "Guardar Imagen", "", filtros)
         if name == "":
             return
-        save_current_view(self, name)
+        save_current_view(self, name, selected_filter)
         self.informar('---IMAGEN GUARDADA---', color=self.blueColor)
 
 
@@ -879,11 +903,12 @@ class Visor_imagen(QtWidgets.QDialog, Ui_Dialog_GV):
         self.pushButton_2.clicked.connect(self.cerrar)
 
     def guardar(self):
-        name, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Guardar Imagen", "", "PNG(*.png);;JPEG(*.jpg)")
+        filtros = "PNG (*.png);;JPEG (*.jpg);;TIFF (*.tiff);;BMP (*.bmp)"
+        name, selected_filter = QtWidgets.QFileDialog.getSaveFileName(None, "Guardar Imagen", "", filtros)
         if name == "":
             return
-        save_viewport_image(self, name)
-        """La imagen que se guarda es la visualizada exactamente en el visor. Si la quiero completa he de hacer zoom"""
+        save_viewport_image(self, name, selected_filter)
+        """La imagen guardada corresponde a la estructura completa, independientemente del zoom del visor."""
 
     def cerrar(self):
         Visor_imagen.hide(self)
