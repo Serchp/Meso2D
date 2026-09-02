@@ -25,7 +25,7 @@ class WorkerPoligonos(WorkerBase):
         super().__init__(params)
 
 
-        self.data = None   # variable para necesaria para save/open proyectos
+        self.data = None   # Data needed for save/open project operations
 
         """"
         Required variables
@@ -97,7 +97,7 @@ class WorkerPoligonos(WorkerBase):
     def distancias_aggregates_ptos(self, list_aggregates, x, y, r):
         """Check whether a new circle intersects at least one aggregate.
 
-        Soporta:
+        Supports:
           - circles [x, y, r]
           - ellipses [cx, cy, a, b, angle?]
                     - Shapely geometries (Polygon, Geometry)
@@ -285,14 +285,14 @@ class WorkerPoligonos(WorkerBase):
                 if resultado is None:
                     print(f"Could not generate a valid polygon at j={j}")
                     break
-                # poligono, area = resultado
+                # polygon, area = resultado
                 coordenadas, area = resultado
                 if area + area_c < self.Aagg_coarse[j]:
                     area_c += area
-                    poligono = Polygon(coordenadas)
-                    if not poligono.is_valid:
-                        poligono = poligono.buffer(0)
-                    self.poligonos_coarse.append(poligono)
+                    polygon = Polygon(coordenadas)
+                    if not polygon.is_valid:
+                        polygon = polygon.buffer(0)
+                    self.poligonos_coarse.append(polygon)
                     num_particulas += 1
                 else:
                     break
@@ -322,14 +322,14 @@ class WorkerPoligonos(WorkerBase):
                 if resultado is None:
                     print(f"Could not generate a valid polygon at l={l}")
                     break
-                # poligono, area = resultado
+                # polygon, area = resultado
                 coordenadas, area = resultado
                 if area + area_c < self.Aagg_fine[l]:
                     area_c += area
-                    poligono = Polygon(coordenadas)
-                    if not poligono.is_valid:
-                        poligono = poligono.buffer(0)
-                    self.poligonos_fine.append(poligono)
+                    polygon = Polygon(coordenadas)
+                    if not polygon.is_valid:
+                        polygon = polygon.buffer(0)
+                    self.poligonos_fine.append(polygon)
                     num_particulas += 1
                 else:
                     break
@@ -352,11 +352,11 @@ class WorkerPoligonos(WorkerBase):
                 return None
             return poly
 
-        def colocar(list_fuente, list_data, list_destino, progress, mensaje):
+        def colocar(source_list, data_list, destination_list, progress, label):
             intentos_maximos = 3000
             colocados = 0
 
-            for base in list_fuente:
+            for base in source_list:
                 self.check_stop()
                 base = limpio(base)
                 if base is None:
@@ -381,14 +381,14 @@ class WorkerPoligonos(WorkerBase):
                         continue
 
                     self.list_aggregates.append(candidato)
-                    list_destino.append(candidato)
-                    list_data.append([x, y, angulo])
+                    destination_list.append(candidato)
+                    data_list.append([x, y, angulo])
                     self.aggregates_puestos = True
                     colocados += 1
                     break
 
             self.progress.emit(progress)
-            self.information.emit(f'{mensaje} placed. {colocados}')
+            self.information.emit(f'{label} placed. {colocados}')
 
         self.list_aggregates = []
         self.todos_aggregates_coarse = []
@@ -438,7 +438,7 @@ class WorkerPoligonos(WorkerBase):
             self.information.emit('Reactive points in paste computed')
 
     def colocar_points_sin_extrafinos(self):
-        """Coloca los points reactive sobre los aggregates y la pasta."""
+        """Place reactive points on aggregates and paste."""
         def dentro_de_limites(x, y, r):
             return r < x < self.params.x - r and r < y < self.params.y - r
 
@@ -595,8 +595,8 @@ class WorkerPoligonos(WorkerBase):
 
         """Draw specimen boundary"""
         if self.params.x and self.params.y:
-            probeta = plt.Rectangle((0, 0), self.params.x, self.params.y, color='black', fill=False, linewidth=2)
-            axes.add_patch(probeta)
+            specimen = plt.Rectangle((0, 0), self.params.x, self.params.y, color='black', fill=False, linewidth=2)
+            axes.add_patch(specimen)
             axes.autoscale_view()
 
         """Convert figure to high-resolution QPixmap"""

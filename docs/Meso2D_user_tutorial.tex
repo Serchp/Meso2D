@@ -1,0 +1,291 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{setspace}
+\setstretch{1.08}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+
+\lstdefinestyle{cmd}{
+  basicstyle=\ttfamily\small,
+  frame=single,
+  breaklines=true,
+  showstringspaces=false
+}
+
+\title{Meso2D: Tutorial de Usuario}
+\author{Guia practica para usuarios nuevos}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Objetivo de este tutorial}
+Este documento explica como utilizar Meso2D para generar mesoestructuras 2D de materiales con:
+\begin{itemize}[leftmargin=1.5em]
+  \item aridos (circulares, elipticos o poligonales),
+  \item poros,
+  \item puntos reactivos,
+  \item y exportacion de resultados para postproceso.
+\end{itemize}
+
+El enfoque es practico: seguir pasos claros para ejecutar simulaciones reproducibles y exportar datos correctos.
+
+\section{Que hace el programa}
+Meso2D permite construir una probeta 2D y poblarla con entidades geometricas de forma controlada por:
+\begin{itemize}[leftmargin=1.5em]
+  \item dosificacion granulometrica,
+  \item fraccion de area de aridos,
+  \item fraccion de area de poros,
+  \item fraccion de area de puntos reactivos,
+  \item y semilla aleatoria (seed).
+\end{itemize}
+
+El flujo interno esta orquestado por un controlador de simulacion que selecciona el worker segun el modo:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{circulos},
+  \item \textbf{ellipses},
+  \item \textbf{poligonos}.
+\end{itemize}
+
+\section{Requisitos previos}
+\subsection{Dependencias}
+Asegurate de tener instalados al menos:
+\begin{itemize}[leftmargin=1.5em]
+  \item Python 3.x
+  \item PyQt5
+  \item numpy
+  \item matplotlib
+  \item ezdxf
+  \item shapely
+  \item opensimplex
+\end{itemize}
+
+\subsection{Ejecucion}
+Desde la carpeta del proyecto, la entrada principal recomendada es:
+\begin{lstlisting}[style=cmd]
+python Meso2D_refactor.py
+\end{lstlisting}
+
+Si estas validando la rama en ingles, puedes abrir:
+\begin{lstlisting}[style=cmd]
+python Meso2D_refactor_EN.py
+\end{lstlisting}
+
+\section{Flujo de trabajo rapido (5 pasos)}
+\begin{enumerate}[leftmargin=1.7em]
+  \item Elegir modo geometrico (circulos, elipses o poligonos).
+  \item Introducir dimensiones de probeta y parametros de dosificacion.
+  \item Activar opcionalmente poros y/o puntos reactivos.
+  \item Ejecutar la simulacion y revisar la visualizacion.
+  \item Exportar estructura e imagen final.
+\end{enumerate}
+
+\section{Pantalla inicial: seleccion de modo}
+Al iniciar, aparece una ventana de seleccion. Ese modo determina:
+\begin{itemize}[leftmargin=1.5em]
+  \item el algoritmo de colocacion de aridos,
+  \item la representacion geometrica de salida,
+  \item y el tipo de comprobaciones de colision.
+\end{itemize}
+
+\textbf{Recomendacion:}
+\begin{itemize}[leftmargin=1.5em]
+  \item Empieza con \textit{circulos} para pruebas rapidas.
+  \item Usa \textit{ellipses} o \textit{poligonos} para estudios mas realistas.
+\end{itemize}
+
+\section{Configuracion de un proyecto}
+\subsection{Parametros principales}
+\begin{longtable}{p{0.28\textwidth} p{0.66\textwidth}}
+\toprule
+\textbf{Parametro} & \textbf{Significado y efecto} \\
+\midrule
+x, y & Dimensiones de la probeta (ancho y alto). Determinan el area total A = x*y. \\
+Pagg & Fraccion de area objetivo ocupada por aridos. \\
+Tabla sieve\_size / tpp & Define la curva granulometrica. El programa reparte area por fracciones usando estas columnas. \\
+dporo\_min, dporo\_max & Diametros minimo y maximo para poros. \\
+Pporos & Fraccion de area objetivo para poros. \\
+dpto\_min\_aggregates, dpto\_max\_aggregates & Rango de diametros de puntos reactivos sobre aridos. \\
+Ppto\_react\_aggregates & Fraccion de area de puntos reactivos en aridos. \\
+dpto\_min\_pasta, dpto\_max\_pasta & Rango de diametros de puntos reactivos en pasta. \\
+Ppto\_react\_pasta & Fraccion de area de puntos reactivos en pasta. \\
+seed & Semilla aleatoria para reproducibilidad exacta. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Tabla de dosificacion}
+\begin{itemize}[leftmargin=1.5em]
+  \item Usa \textbf{Add} para insertar filas.
+  \item Completa \textbf{sieve\_size} (tamano de tamiz) y \textbf{tpp} (porcentaje pasante acumulado).
+  \item Mantener coherencia fisica evita fallos de convergencia.
+\end{itemize}
+
+\textbf{Consejo practico:}
+si una simulacion tarda demasiado o no logra colocar entidades, reduce densidades objetivo (Pagg/Pporos/Ppto\_react\_*) o amplía la probeta.
+
+\section{Opciones de simulacion}
+\subsection{Poros}
+Al activar la opcion de poros:
+\begin{itemize}[leftmargin=1.5em]
+  \item se calcula una lista de radios hasta consumir el area objetivo,
+  \item y luego se colocan evitando colisiones con aridos y otros poros.
+\end{itemize}
+
+\subsection{Puntos reactivos}
+Los puntos se pueden activar en dos canales:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{sobre aridos},
+  \item \textbf{en pasta}.
+\end{itemize}
+
+Internamente:
+\begin{itemize}[leftmargin=1.5em]
+  \item para aridos se usa muestreo por \textbf{clusters},
+  \item para pasta se usa \textbf{ruido Simplex} para patrones organicos no uniformes.
+\end{itemize}
+
+\section{Ejecucion de la simulacion}
+\subsection{Antes de pulsar Run}
+Checklist recomendado:
+\begin{enumerate}[leftmargin=1.7em]
+  \item Modo seleccionado correctamente.
+  \item x, y con valores validos.
+  \item Tabla de dosificacion completa.
+  \item Pagg definido.
+  \item Si hay poros/puntos, todos sus campos necesarios rellenados.
+  \item Seed fijada si necesitas reproducibilidad.
+\end{enumerate}
+
+\subsection{Durante la ejecucion}
+\begin{itemize}[leftmargin=1.5em]
+  \item La barra de progreso avanza por etapas.
+  \item El panel de log muestra estado y mensajes del worker.
+  \item Puedes usar \textbf{Stop} para cancelar una corrida.
+\end{itemize}
+
+\subsection{Despues de la ejecucion}
+Al terminar:
+\begin{itemize}[leftmargin=1.5em]
+  \item se habilita la visualizacion de estructura,
+  \item se habilita la exportacion,
+  \item y queda registrado el tiempo de simulacion.
+\end{itemize}
+
+\section{Visualizacion y guardado de imagen}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Ver estructura}: abre el visor.
+  \item \textbf{Save Image}: guarda en PNG/JPEG/TIFF/BMP.
+\end{itemize}
+
+\textbf{Nota:} el guardado esta pensado para conservar la estructura generada completa.
+
+\section{Exportacion de estructura}
+\subsection{Formatos disponibles}
+Desde \textbf{Export Structure} puedes guardar en:
+\begin{itemize}[leftmargin=1.5em]
+  \item DXF
+  \item SVG
+  \item JSON
+  \item Gmsh GEO
+\end{itemize}
+
+\subsection{Recomendaciones}
+\begin{itemize}[leftmargin=1.5em]
+  \item Exporta inmediatamente despues de una corrida correcta.
+  \item Si cambias parametros, vuelve a ejecutar antes de exportar.
+  \item Mantén nombres de archivo con fecha/seed para trazabilidad.
+\end{itemize}
+
+\section{Proyectos: nuevo, abrir, guardar, ejemplo}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{New Project}: limpia estado actual.
+  \item \textbf{Open Project}: carga archivo de proyecto y rellena la UI.
+  \item \textbf{Save Project}: guarda parametros actuales.
+  \item \textbf{Load Example}: carga un caso de ejemplo para pruebas rapidas.
+\end{itemize}
+
+\section{Reproducibilidad y trazabilidad}
+Para repetir exactamente una estructura:
+\begin{enumerate}[leftmargin=1.7em]
+  \item guarda el proyecto,
+  \item anota la seed,
+  \item mantén el mismo modo,
+  \item usa la misma version del codigo.
+\end{enumerate}
+
+\section{Solucion de problemas comunes}
+\subsection{La simulacion no arranca}
+Causas habituales:
+\begin{itemize}[leftmargin=1.5em]
+  \item falta algun campo obligatorio,
+  \item tabla de dosificacion incompleta,
+  \item valores no numericos.
+\end{itemize}
+
+\subsection{No se colocan suficientes entidades}
+\begin{itemize}[leftmargin=1.5em]
+  \item baja Pagg, Pporos o Ppto\_react\_*,
+  \item amplia dominio (x, y),
+  \item reduce diametros minimos,
+  \item simplifica inicialmente usando modo circulos.
+\end{itemize}
+
+\subsection{Exportacion falla}
+\begin{itemize}[leftmargin=1.5em]
+  \item verifica que exista una estructura recien generada,
+  \item revisa permisos de escritura en carpeta destino,
+  \item prueba formato DXF como control inicial.
+\end{itemize}
+
+\section{Buenas practicas para usuario final}
+\begin{enumerate}[leftmargin=1.7em]
+  \item Trabaja con versionado de proyectos (v1, v2, v3...) y seed registrada.
+  \item Cambia un bloque de parametros cada vez para entender su impacto.
+  \item Guarda imagen y estructura en cada corrida util.
+  \item Documenta en un cuaderno: modo, seed, Pagg, Pporos, ratios reactivos.
+  \item Para lotes de pruebas, empieza en circulos y pasa a elipses/poligonos al final.
+\end{enumerate}
+
+\section{Mini guia de inicio rapido}
+\begin{enumerate}[leftmargin=1.7em]
+  \item Ejecuta \texttt{python Meso2D\_refactor.py}.
+  \item Elige modo \textit{circulos}.
+  \item Define x=100, y=100 (ejemplo), Pagg y tabla de dosificacion.
+  \item Activa poros con valores moderados.
+  \item Pulsa \textbf{Run}.
+  \item Visualiza resultado y exporta a DXF + PNG.
+\end{enumerate}
+
+\section{Notas para futuros usuarios avanzados}
+\begin{itemize}[leftmargin=1.5em]
+  \item El modo poligonal y eliptico usa comprobaciones geometricas mas exigentes.
+  \item Los puntos reactivos en pasta dependen del umbral y escala del campo Simplex.
+  \item En dominios muy saturados, el limite de intentos evita bucles infinitos y puede descartar candidatos.
+\end{itemize}
+
+\section{Resumen final}
+Meso2D combina dosificacion, muestreo estocastico y restricciones geometricas para crear mesoestructuras 2D exportables.
+
+Si sigues el flujo:
+\begin{enumerate}[leftmargin=1.7em]
+  \item configurar parametros,
+  \item ejecutar,
+  \item validar visualmente,
+  \item exportar,
+  \item registrar seed y proyecto,
+\end{enumerate}
+obtendras resultados reproducibles y comparables para analisis posteriores.
+
+\end{document}

@@ -42,7 +42,7 @@ class Selector(QtWidgets.QMainWindow, Menuinicio):
 
         self.setupUi(self)
         self.pb_circulos.clicked.connect(self.pb_circulos_pulsar)
-        self.pb_ellipses.clicked.connect(self.pb_ellipses_pulsar)
+        self.pb_elipses.clicked.connect(self.pb_ellipses_pulsar)
         self.pb_poligonos.clicked.connect(self.pb_poligonos_pulsar)
 
     def pb_circulos_pulsar(self):
@@ -96,6 +96,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.a_New.triggered.connect(self.new_project)
         self.a_Structure.triggered.connect(self.exportar_structure)
         self.a_GuardarI.triggered.connect(self.save_image)
+        self.a_Tutorial.triggered.connect(self.open_tutorial_pdf)
 
         self.pb_run.clicked.connect(self.run)
         self.pb_add.clicked.connect(self.add_fila)
@@ -116,26 +117,26 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.tabla_dosif.resizeRowsToContents()
         self.tabla_dosif.resizeColumnsToContents()
 
-        self.sieve_size = None  # sieve mesh size
-        self.tpp = None  # porcentaje acumulado de aggregates que pasan por el correspondiente sieve_size
+        self.sieve_size = None  # Sieve mesh size
+        self.tpp = None  # Cumulative aggregate percentage passing each sieve size
 
-        self.x = None  # specimen x dimension
-        self.y = None  # specimen y dimension
-        self.Pagg = None  # coarse aggregate ratio
-        self.Pporos = None  # pore ratio
-        self.dporo_min = None  # minimum pore diameter
-        self.dporo_max = None  # maximum pore diameter
+        self.x = None  # Specimen x dimension
+        self.y = None  # Specimen y dimension
+        self.Pagg = None  # Coarse aggregate ratio
+        self.Pporos = None  # Pore ratio
+        self.dporo_min = None  # Minimum pore diameter
+        self.dporo_max = None  # Maximum pore diameter
         self.r_react = None  # currently unused
-        self.dpto_max_aggregates = None  # maximum reactive-point diameter in aggregates
-        self.dpto_min_aggregates = None  # minimum reactive-point diameter in aggregates
-        self.dpto_max_pasta = None  # maximum reactive-point diameter in paste
-        self.dpto_min_pasta = None  # minimum reactive-point diameter in paste
-        self.Ppto_react_aggregates = None  # reactive-point ratio in aggregates
-        self.Ppto_react_pasta = None  # reactive-point ratio in paste
+        self.dpto_max_aggregates = None  # Maximum reactive-point diameter in aggregates
+        self.dpto_min_aggregates = None  # Minimum reactive-point diameter in aggregates
+        self.dpto_max_pasta = None  # Maximum reactive-point diameter in paste
+        self.dpto_min_pasta = None  # Minimum reactive-point diameter in paste
+        self.Ppto_react_aggregates = None  # Reactive-point ratio in aggregates
+        self.Ppto_react_pasta = None  # Reactive-point ratio in paste
 
-        self.seed = None  # seed for reproducibility
+        self.seed = None  # Seed for reproducibility
 
-        self.data = None  # data needed for save/open operations
+        self.data = None  # Data needed for save/open operations
 
         """"
         Required variables
@@ -167,7 +168,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.list_aggregates_fine = []
 
         self.A_pores = None
-        print('el Aporo es ' + str(self.A_pores))
+        print('Pore area is ' + str(self.A_pores))
 
         self.A_points_aggregates = None
         self.A_points_pasta = None
@@ -225,7 +226,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
 
     def open_project(self):
         if self.data:
-            print("hay data")
+            print("Existing project data detected")
             choice = QMessageBox.information(None, 'Confirmation',
                                              "Do you want to clear the current project and open another one?",
                                              QMessageBox.Ok | QMessageBox.No)
@@ -247,26 +248,26 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.log('---PROJECT LOADED---', color=self.blueColor)
 
     def variables_limpias(self):
-        self.sieve_size = None  # sieve mesh size
-        self.tpp = None  # porcentaje acumulado de aggregates que pasan por el correspondiente sieve_size
+        self.sieve_size = None  # Sieve mesh size
+        self.tpp = None  # Cumulative aggregate percentage passing each sieve size
 
-        self.x = None  # specimen x dimension
-        self.y = None  # specimen y dimension
-        self.Pagg = None  # coarse aggregate ratio
-        self.Pporos = None  # pore ratio
-        self.dporo_min = None  # minimum pore diameter
-        self.dporo_max = None  # maximum pore diameter
+        self.x = None  # Specimen x dimension
+        self.y = None  # Specimen y dimension
+        self.Pagg = None  # Coarse aggregate ratio
+        self.Pporos = None  # Pore ratio
+        self.dporo_min = None  # Minimum pore diameter
+        self.dporo_max = None  # Maximum pore diameter
         self.r_react = None  # currently unused
-        self.dpto_max_aggregates = None  # maximum reactive-point diameter in aggregates
-        self.dpto_min_aggregates = None  # minimum reactive-point diameter in aggregates
-        self.dpto_max_pasta = None  # maximum reactive-point diameter in paste
-        self.dpto_min_pasta = None  # minimum reactive-point diameter in paste
-        self.Ppto_react_aggregates = None  # reactive-point ratio in aggregates
-        self.Ppto_react_pasta = None  # reactive-point ratio in paste
+        self.dpto_max_aggregates = None  # Maximum reactive-point diameter in aggregates
+        self.dpto_min_aggregates = None  # Minimum reactive-point diameter in aggregates
+        self.dpto_max_pasta = None  # Maximum reactive-point diameter in paste
+        self.dpto_min_pasta = None  # Minimum reactive-point diameter in paste
+        self.Ppto_react_aggregates = None  # Reactive-point ratio in aggregates
+        self.Ppto_react_pasta = None  # Reactive-point ratio in paste
 
-        self.seed = None  # seed for reproducibility
+        self.seed = None  # Seed for reproducibility
 
-        self.data = None  # data needed for save/open operations
+        self.data = None  # Data needed for save/open operations
 
         self.A = None
         self.Aagg = []
@@ -299,7 +300,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
 
     def new_project(self):
         if self.data:
-            print("hay data")
+            print("Existing project data detected")
             choice = QMessageBox.information(None, 'Confirmation',
                                              "Do you want to clear the current project and start a new one?",
                                              QMessageBox.Ok | QMessageBox.No)
@@ -311,7 +312,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.log('---NEW PROJECT---', color=self.blueColor)
 
     def load_example(self):
-        # Backward compatibility with original Spanish example filenames.
+        # Keep backward compatibility with the original Spanish example filenames.
         candidates = ["proyecto_ejemplo2.txt", "project_example2.txt", "project_ejemplo2.txt"]
         example_path = None
         for name in candidates:
@@ -335,7 +336,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
     Load calculation variables into the GUI
     """
     def llenar_data(self):
-        """check first which values exist to avoid filling extra fields"""
+        """Check which values exist first to avoid filling unrelated fields."""
         if self.seed:
             self.cb_seed.setChecked(True)
             self.le_seed.setText(str(self.seed))
@@ -412,7 +413,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
     Load project dictionary data into calculation variables
     """
     def update_data(self, diccionario):
-        # Accept original Spanish project keys when loading legacy examples/projects.
+        # Accept original Spanish project keys when loading legacy examples or projects.
         aliases = {
             "dpto_max_aridos": "dpto_max_aggregates",
             "dpto_min_aridos": "dpto_min_aggregates",
@@ -430,12 +431,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         apply_project_payload(self, diccionario)
 
     def save_project(self):
-        """import json
-
-        details = {'Name': "Bob", 'Age' :28}
-
-        with open('convert.txt', 'w') as convert_file:
-            convert_file.write(json.dumps(details))"""
+        """Save the current project state to a JSON-backed text file."""
 
         self.project = build_project_payload(self)
 
@@ -776,35 +772,35 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         doc.layers.new(name='Ptos_reactive')
         msp = doc.modelspace()
 
-        # Export pores (circles)
+        # Export pores as circles.
         for i in self.list_pores:
             msp.add_circle([i[0], i[1]], i[2], dxfattribs={'layer': 'Pores'})
 
-        # Helper to sample points of a rotated ellipse
+        # Sample points along a rotated ellipse so it can be exported as a polyline.
         def points_elipse(x, y, a, b, angulo_deg, num_points=60):
             angulo_rad = np.radians(angulo_deg)
             t = np.linspace(0, 2 * np.pi, num_points)
-            # Ellipse before rotation
+            # Local ellipse coordinates before rotation.
             px = a * np.cos(t)
             py = b * np.sin(t)
-            # Rotate points
+            # Rotate and translate the sampled points.
             xr = px * np.cos(angulo_rad) - py * np.sin(angulo_rad) + x
             yr = px * np.sin(angulo_rad) + py * np.cos(angulo_rad) + y
             return list(zip(xr, yr))
 
-        # Export coarse aggregates (ellipses)
+        # Export coarse aggregates as ellipses.
         for e in self.list_aggregates_coarse:
             x, y, a, b, angulo = e
             pts = points_elipse(x, y, a, b, angulo)
             msp.add_lwpolyline(pts, close=True, dxfattribs={'layer': 'Aggregates coarse'})
 
-        # Export fine aggregates (ellipses)
+        # Export fine aggregates as ellipses.
         for e in self.list_aggregates_fine:
             x, y, a, b, angulo = e
             pts = points_elipse(x, y, a, b, angulo)
             msp.add_lwpolyline(pts, close=True, dxfattribs={'layer': 'Aggregates fine'})
 
-        # Export reactive points (assuming circles)
+        # Export reactive points as circles.
         for i in self.list_ptos_react:
             msp.add_circle([i[0], i[1]], i[2], dxfattribs={'layer': 'Ptos_reactive'})
 
@@ -825,7 +821,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         doc.layers.new(name='Ptos_reactive')
         msp = doc.modelspace()
 
-        # Export pores (circles)
+        # Export pores as circles.
         for pore in self.list_pores:
             if isinstance(pore, (list, tuple)) and len(pore) >= 3:
                 msp.add_circle([pore[0], pore[1]], pore[2], dxfattribs={'layer': 'Pores'})
@@ -836,7 +832,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
                 if len(pts) >= 3:
                     msp.add_lwpolyline(pts, close=True, dxfattribs={'layer': 'Pores'})
 
-        # Export aggregates (accepts Shapely polygons or vertex lists)
+        # Export aggregates; the input can be Shapely polygons or raw vertex lists.
         def extract_polygon_vertices(obj):
             if hasattr(obj, "exterior"):
                 pts = list(obj.exterior.coords)
@@ -862,7 +858,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
             if pts is not None:
                 msp.add_lwpolyline(pts, close=True, dxfattribs={'layer': 'Aggregates fine'})
 
-        # Export reactive points (circles)
+        # Export reactive points as circles.
         for pkreactivo in self.list_ptos_react:
             msp.add_circle([pkreactivo[0], pkreactivo[1]], pkreactivo[2], dxfattribs={'layer': 'Ptos_reactive'})
 
@@ -878,6 +874,28 @@ class mainProgram(QMainWindow, Ui_MainWindow):
             return
         save_current_view(self, name, selected_filter)
         self.log('---IMAGE SAVED---', color=self.blueColor)
+
+    def open_tutorial_pdf(self):
+        docs_dir = Path(__file__).resolve().parent / "docs"
+        primary_pdf = docs_dir / "Meso2D_user_tutorial_EN.pdf"
+        fallback_pdf = docs_dir / "Meso2D_user_tutorial.pdf"
+
+        tutorial_path = primary_pdf if primary_pdf.exists() else fallback_pdf
+        if not tutorial_path.exists():
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Tutorial Not Found",
+                "Could not find the tutorial PDF in the docs folder."
+            )
+            return
+
+        opened = QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(str(tutorial_path)))
+        if not opened:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Open Error",
+                f"Could not open tutorial file: {tutorial_path}"
+            )
 
 
     def informar2(self, mensaje=None, color=None):
@@ -907,8 +925,8 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.tb_info.setTextColor(self.redColor)
         self.tb_info.append(mensaje)
 
-    def show_progress(self, porcentaje):
-        self.progressBar.setValue(porcentaje)
+    def show_progress(self, percentage):
+        self.progressBar.setValue(percentage)
 
 
 class Viewer_image(QtWidgets.QDialog, Ui_Dialog_GV):
