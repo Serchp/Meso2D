@@ -69,12 +69,12 @@ class WorkerTodos(WorkerBase):
     """Distance functions refactored
     Vectorized with arrays to avoid explicit loops and compute distances in batches
     """
-    def distancias(self, list, coor_x, coor_y, radio):
+    def distancias(self, items, coor_x, coor_y, radio):
         """Return True when there is no overlap with existing elements."""
-        if not list:
+        if not items:
             return True
 
-        list_np = np.array(list)
+        list_np = np.array(items)
         dx = list_np[:, 0] - coor_x
         dy = list_np[:, 1] - coor_y
         distancias = np.sqrt(dx ** 2 + dy ** 2)
@@ -82,11 +82,11 @@ class WorkerTodos(WorkerBase):
 
         return np.all(distancias > radios_sumados)
 
-    def distancias_aggregates_ptos(self, list, coor_x, coor_y, radio):
-        if not list:
+    def distancias_aggregates_ptos(self, items, coor_x, coor_y, radio):
+        if not items:
             return False  # No overlap if there are no elements
 
-        list_np = np.array(list)  # Assumes each entry is [x, y, r]
+        list_np = np.array(items)  # Assumes each entry is [x, y, r]
         dx = list_np[:, 0] - coor_x
         dy = list_np[:, 1] - coor_y
         distancias = np.sqrt(dx ** 2 + dy ** 2)

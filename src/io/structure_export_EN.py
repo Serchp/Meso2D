@@ -12,17 +12,31 @@ class StructureExportError(Exception):
 def export_structure_file(
     path: str,
     selected_filter: str,
-    mode: str,
-    list_pores: Sequence[Any],
-    list_aggregates_coarse: Sequence[Any],
-    list_aggregates_fine: Sequence[Any],
-    list_ptos_react: Sequence[Any],
+    mode: str = "",
+    list_pores: Sequence[Any] = (),
+    list_aggregates_coarse: Sequence[Any] = (),
+    list_aggregates_fine: Sequence[Any] = (),
+    list_ptos_react: Sequence[Any] = (),
     domain: Optional[Dict[str, float]] = None,
+    **kwargs: Any,
 ) -> str:
     """Export the structure to the format selected by extension/filter.
 
     Return the final written path (with normalized extension).
     """
+    if not mode:
+        mode = kwargs.get("modo", "")
+    if not list_pores:
+        list_pores = kwargs.get("lista_poros", list_pores)
+    if not list_aggregates_coarse:
+        list_aggregates_coarse = kwargs.get("lista_aridos_gruesos", list_aggregates_coarse)
+    if not list_aggregates_fine:
+        list_aggregates_fine = kwargs.get("lista_aridos_finos", list_aggregates_fine)
+    if not list_ptos_react:
+        list_ptos_react = kwargs.get("lista_ptos_react", list_ptos_react)
+    if mode == "elipses":
+        mode = "ellipses"
+
     format_name, final_path = _resolve_format_and_path(path, selected_filter)
 
     if format_name == "dxf":

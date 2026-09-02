@@ -1,4 +1,5 @@
 import json
+from typing import Any, Dict
 
 _CANONICAL_FIELDS = [
     "sieve_size",
@@ -26,7 +27,7 @@ _ES_TO_CANONICAL = {
 }
 
 
-def _normalize_payload(payload):
+def _normalize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     normalized = dict(payload)
     for old_key, new_key in _ES_TO_CANONICAL.items():
         if old_key in normalized and new_key not in normalized:
@@ -34,8 +35,8 @@ def _normalize_payload(payload):
     return normalized
 
 
-def build_project_payload(window):
-    return {
+def build_project_payload(window: Any) -> Dict[str, Any]:
+    payload = {
         "sieve_size": getattr(window, "sieve_size", None),
         "tpp": getattr(window, "tpp", None),
         "x": getattr(window, "x", None),
@@ -53,25 +54,28 @@ def build_project_payload(window):
         "Ppto_react_pasta": getattr(window, "Ppto_react_pasta", None),
         "seed": getattr(window, "seed", None),
     }
+    return payload
 
 
-def save_project_to_file(path, payload):
+def save_project_to_file(path: str, payload: Dict[str, Any]) -> None:
     if "." not in path:
         path += ".txt"
     with open(path, "w", encoding="utf-8") as archivo:
         json.dump(payload, archivo)
 
 
-def load_project_from_file(path):
+def load_project_from_file(path: str) -> Dict[str, Any]:
     with open(path, encoding="utf-8") as f:
-        return _normalize_payload(json.load(f))
+        data = json.load(f)
+    return _normalize_payload(data)
 
 
-def apply_project_payload(window, diccionario):
-    normalized = _normalize_payload(diccionario)
-    for name in _CANONICAL_FIELDS:
-        setattr(window, name, normalized.get(name, None))
+def apply_project_payload(window: Any, payload: Dict[str, Any]) -> None:
+    normalized = _normalize_payload(payload)
+    for field in _CANONICAL_FIELDS:
+        setattr(window, field, normalized.get(field, None))
 
+    # Keep legacy Spanish names synchronized for old code paths.
     window.dpto_max_aridos = getattr(window, "dpto_max_aggregates", None)
     window.dpto_min_aridos = getattr(window, "dpto_min_aggregates", None)
     window.Ppto_react_aridos = getattr(window, "Ppto_react_aggregates", None)

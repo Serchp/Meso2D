@@ -1,0 +1,280 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{setspace}
+\setstretch{1.08}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+
+\lstdefinestyle{cmd}{
+  basicstyle=\ttfamily\small,
+  frame=single,
+  breaklines=true,
+  showstringspaces=false
+}
+
+\title{Meso2D: User Tutorial}
+\author{Practical guide for new users}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Purpose of this tutorial}
+This guide explains how to use Meso2D to generate 2D mesostructures with:
+\begin{itemize}[leftmargin=1.5em]
+  \item aggregates (circular, elliptical, or polygonal),
+  \item pores,
+  \item reactive points,
+  \item and exportable outputs for post-processing.
+\end{itemize}
+
+The approach is practical: follow a clear sequence to run reproducible simulations and export consistent data.
+
+\section{What the program does}
+Meso2D builds a 2D specimen and fills it with geometric entities according to:
+\begin{itemize}[leftmargin=1.5em]
+  \item gradation/dosification,
+  \item aggregate area fraction,
+  \item pore area fraction,
+  \item reactive-point area fraction,
+  \item and random seed control.
+\end{itemize}
+
+The execution is orchestrated by a simulation controller that selects a worker for:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{circulos},
+  \item \textbf{ellipses},
+  \item \textbf{poligonos}.
+\end{itemize}
+
+\section{Prerequisites}
+\subsection{Dependencies}
+Make sure at least the following packages are installed:
+\begin{itemize}[leftmargin=1.5em]
+  \item Python 3.x
+  \item PyQt5
+  \item numpy
+  \item matplotlib
+  \item ezdxf
+  \item shapely
+  \item opensimplex
+\end{itemize}
+
+\subsection{Run commands}
+From the project root:
+\begin{lstlisting}[style=cmd]
+python Meso2d.py
+\end{lstlisting}
+
+Legacy compatibility aliases (still valid):
+\begin{lstlisting}[style=cmd]
+python Meso2D_refactor.py
+python Meso2D_refactor_EN.py
+\end{lstlisting}
+
+\section{Quick workflow (5 steps)}
+\begin{enumerate}[leftmargin=1.7em]
+  \item Choose the geometry mode (circles, ellipses, or polygons).
+  \item Set specimen size and gradation parameters.
+  \item Optionally enable pores and/or reactive points.
+  \item Run the simulation and inspect visualization.
+  \item Export structure and image.
+\end{enumerate}
+
+\section{Start screen: mode selection}
+At startup, the mode selection window determines:
+\begin{itemize}[leftmargin=1.5em]
+  \item aggregate placement algorithm,
+  \item geometric representation of results,
+  \item collision-check strategy.
+\end{itemize}
+
+\textbf{Recommendation:}
+\begin{itemize}[leftmargin=1.5em]
+  \item Start with \textit{circulos} for fast checks.
+  \item Use \textit{ellipses} or \textit{poligonos} for more realistic morphology studies.
+\end{itemize}
+
+\section{Project configuration}
+\subsection{Main parameters}
+\begin{longtable}{p{0.30\textwidth} p{0.64\textwidth}}
+\toprule
+\textbf{Parameter} & \textbf{Meaning and effect} \\
+\midrule
+x, y & Specimen dimensions (width and height). Total area is A = x*y. \\
+Pagg & Target area fraction occupied by aggregates. \\
+Gradation table sieve\_size / tpp & Defines the gradation curve. Area is split by fraction using these columns. \\
+dporo\_min, dporo\_max & Minimum and maximum pore diameters. \\
+Pporos & Target pore area fraction. \\
+dpto\_min\_aggregates, dpto\_max\_aggregates & Diameter range for reactive points on aggregates. \\
+Ppto\_react\_aggregates & Reactive-point area fraction over aggregates. \\
+dpto\_min\_pasta, dpto\_max\_pasta & Diameter range for reactive points in paste. \\
+Ppto\_react\_pasta & Reactive-point area fraction in paste. \\
+seed & Random seed for exact reproducibility. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Gradation table}
+\begin{itemize}[leftmargin=1.5em]
+  \item Use \textbf{Add} to insert rows.
+  \item Fill \textbf{sieve\_size} and \textbf{tpp} consistently.
+  \item Physically consistent values improve convergence and placement success.
+\end{itemize}
+
+\section{Simulation options}
+\subsection{Pores}
+When pores are enabled:
+\begin{itemize}[leftmargin=1.5em]
+  \item pore radii are generated until target pore area is consumed,
+  \item pores are placed without overlap against aggregates or existing pores.
+\end{itemize}
+
+\subsection{Reactive points}
+Reactive points can be generated in two channels:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{on aggregates},
+  \item \textbf{in paste}.
+\end{itemize}
+
+Internally:
+\begin{itemize}[leftmargin=1.5em]
+  \item aggregate channel typically uses \textbf{cluster sampling},
+  \item paste channel typically uses \textbf{Simplex noise gating}.
+\end{itemize}
+
+\section{Running the simulation}
+\subsection{Before pressing Run}
+Recommended checklist:
+\begin{enumerate}[leftmargin=1.7em]
+  \item Correct mode selected.
+  \item Valid x and y values.
+  \item Complete gradation table.
+  \item Pagg set.
+  \item If pores/reactive points are enabled, all required fields are filled.
+  \item Fixed seed if strict reproducibility is needed.
+\end{enumerate}
+
+\subsection{During execution}
+\begin{itemize}[leftmargin=1.5em]
+  \item Progress bar advances by pipeline stages.
+  \item Information panel shows worker status messages.
+  \item \textbf{Stop} can cancel the current run.
+\end{itemize}
+
+\subsection{After execution}
+After a successful run:
+\begin{itemize}[leftmargin=1.5em]
+  \item structure visualization is available,
+  \item export actions are enabled,
+  \item simulation time is logged.
+\end{itemize}
+
+\section{Visualization and image saving}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{View structure}: opens the viewer window.
+  \item \textbf{Save Image}: saves PNG/JPEG/TIFF/BMP.
+\end{itemize}
+
+\section{Structure export}
+\subsection{Available formats}
+From \textbf{Export Structure}, you can save to:
+\begin{itemize}[leftmargin=1.5em]
+  \item DXF
+  \item SVG
+  \item JSON
+  \item Gmsh GEO
+\end{itemize}
+
+\subsection{Best practices}
+\begin{itemize}[leftmargin=1.5em]
+  \item Export right after a successful run.
+  \item If parameters change, rerun before exporting.
+  \item Include date and seed in file names for traceability.
+\end{itemize}
+
+\section{Project lifecycle actions}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{New Project}: clears current state.
+  \item \textbf{Open Project}: loads a saved project and repopulates UI fields.
+  \item \textbf{Save Project}: stores current parameters.
+  \item \textbf{Load Example}: loads a sample project for quick testing.
+\end{itemize}
+
+\section{Reproducibility and traceability}
+To reproduce exactly the same structure:
+\begin{enumerate}[leftmargin=1.7em]
+  \item save the project,
+  \item record the seed,
+  \item keep the same mode,
+  \item run the same code version.
+\end{enumerate}
+
+\section{Troubleshooting}
+\subsection{Simulation does not start}
+Common causes:
+\begin{itemize}[leftmargin=1.5em]
+  \item missing required field,
+  \item incomplete gradation table,
+  \item non-numeric input in numeric fields.
+\end{itemize}
+
+\subsection{Too many placement failures}
+\begin{itemize}[leftmargin=1.5em]
+  \item reduce target fractions (Pagg, Pporos, reactive ratios),
+  \item increase specimen size (x, y),
+  \item reduce minimum diameters,
+  \item begin with circles mode for calibration.
+\end{itemize}
+
+\subsection{Export fails}
+\begin{itemize}[leftmargin=1.5em]
+  \item ensure a fresh structure has been generated,
+  \item check write permissions in destination folder,
+  \item test DXF export first as a baseline.
+\end{itemize}
+
+\section{Recommended usage habits}
+\begin{enumerate}[leftmargin=1.7em]
+  \item Keep project versions and seeds documented.
+  \item Change one parameter group at a time.
+  \item Save both image and structure for every useful run.
+  \item Record mode, seed, Pagg, Pporos, and reactive ratios.
+  \item For batch studies, calibrate in circles mode and then switch to ellipses/polygons.
+\end{enumerate}
+
+\section{Quick start example}
+\begin{enumerate}[leftmargin=1.7em]
+  \item Run \texttt{python Meso2D\_refactor\_EN.py}.
+  \item Select \textit{circulos}.
+  \item Set x=100, y=100 (example), Pagg, and gradation table values.
+  \item Enable pores with moderate values.
+  \item Press \textbf{Run}.
+  \item Visualize and export to DXF + PNG.
+\end{enumerate}
+
+\section{Summary}
+Meso2D combines gradation-driven area budgeting, stochastic sampling, and geometric collision constraints to build 2D mesostructures.
+
+A robust routine is:
+\begin{enumerate}[leftmargin=1.7em]
+  \item configure parameters,
+  \item run,
+  \item validate visually,
+  \item export,
+  \item and record seed plus project file.
+\end{enumerate}
+
+This process provides reproducible and comparable outputs for later analysis.
+
+\end{document}
