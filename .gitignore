@@ -6,6 +6,7 @@ __pycache__/
 build/
 dist/
 *.spec
+!Meso2d.spec
 
 .idea/
 .agents/
