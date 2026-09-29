@@ -77,11 +77,11 @@ class WorkerElipses(WorkerBase):
     """Distance functions refactored.
     Vectorized with arrays to avoid explicit loops and compute distances in batches
     """
-    def distancias(self, list, coor_x, coor_y, radio):
-        if not list:
+    def distancias(self, items, coor_x, coor_y, radio):
+        if not items:
             return True
 
-        list_np = np.array(list)
+        list_np = np.array(items)
         dx = list_np[:, 0] - coor_x
         dy = list_np[:, 1] - coor_y
         distancias = np.sqrt(dx ** 2 + dy ** 2)
@@ -89,7 +89,7 @@ class WorkerElipses(WorkerBase):
 
         return np.all(distancias > radios_sumados)
 
-    def distancias_aggregates_ptos(self, list, coor_x, coor_y, radio):
+    def distancias_aggregates_ptos(self, aggregates, coor_x, coor_y, radio):
         """
                 Return True if the new point (coor_x, coor_y, radio) intersects
                 at least one aggregate in list. Supports:
@@ -97,12 +97,12 @@ class WorkerElipses(WorkerBase):
                     - items [cx, cy, a, b, angle?] (ellipses, a/b semi-axes, optional angle in degrees),
                     - Shapely objects (Polygon, Geometry).
         """
-        if not list:
+        if not aggregates:
             return False
 
         new = Point(coor_x, coor_y).buffer(radio, resolution=32)
 
-        for ar in list:
+        for ar in aggregates:
             # Case: circle defined as [x, y, r]
             if isinstance(ar, (list, tuple)) and len(ar) == 3:
                 try:

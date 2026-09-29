@@ -44,6 +44,9 @@ def _save_widget_image(widget, path, selected_filter=""):
 
 
 def _save_full_photo_pixmap(graphics_view, path, selected_filter=""):
+    if graphics_view is None:
+        return
+
     final_path, ext = _resolve_image_path(path, selected_filter)
     photo_item = getattr(graphics_view, "_photo", None)
     pixmap = photo_item.pixmap() if photo_item is not None else QtGui.QPixmap()
@@ -64,8 +67,11 @@ def _save_full_photo_pixmap(graphics_view, path, selected_filter=""):
 
 
 def save_viewport_image(dialog, path, selected_filter=""):
-    _save_full_photo_pixmap(dialog.gv_viewer, path, selected_filter)
+    graphics_view = getattr(dialog, "gv_viewer", getattr(dialog, "gv_visor", None))
+    _save_full_photo_pixmap(graphics_view, path, selected_filter)
 
 
 def save_current_view(window, path, selected_filter=""):
-    _save_full_photo_pixmap(window.dlg.gv_viewer, path, selected_filter)
+    dialog = getattr(window, "dlg", None)
+    graphics_view = None if dialog is None else getattr(dialog, "gv_viewer", getattr(dialog, "gv_visor", None))
+    _save_full_photo_pixmap(graphics_view, path, selected_filter)

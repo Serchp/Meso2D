@@ -1,3 +1,5 @@
-from .orchestration import SimulationController, SimulationModel, create_worker
+from .orchestration_EN import SimulationController, SimulationModel, create_worker
 
-__all__ = ["SimulationController", "SimulationModel", "create_worker"]
+SimulationControllerBridge = SimulationController
+
+__all__ = ["SimulationController", "SimulationControllerBridge", "SimulationModel", "create_worker"]

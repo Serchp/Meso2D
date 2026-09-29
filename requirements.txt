@@ -1,0 +1,7 @@
+# Runtime dependencies for Meso2d.py
+ezdxf
+matplotlib
+numpy
+opensimplex
+PyQt5
+shapely
