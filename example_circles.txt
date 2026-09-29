@@ -1,0 +1,18 @@
+{
+  "sieve_size": [25.0, 14.0, 10.0, 4.0, 2.0, 1.0, 0.5, 0.25],
+  "tpp": [100, 80, 60, 40, 36, 26, 16, 6],
+  "x": 75,
+  "y": 75,
+  "Pagg": 0.5,
+  "Pporos": 0.02,
+  "dporo_min": 2,
+  "dporo_max": 4,
+  "r_react": 0.05,
+  "dpto_max_aggregates": 0.1,
+  "dpto_min_aggregates": 0.1,
+  "dpto_max_pasta": 0.1,
+  "dpto_min_pasta": 0.1,
+  "Ppto_react_aggregates": 0.002,
+  "Ppto_react_pasta": 0.002,
+  "seed": 666
+}
