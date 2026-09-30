@@ -1,22 +1,15 @@
-﻿"""
-Script derived from Meso2D_03_todo_worker_limpio
-Main changes:
-- paste includes the two fine fractions considered in the mesostructure
-- clearer GUI definitions for the updated model
-- Add/Remove row support in the gradation table
-- stop handling after simulation completion
-"""
+﻿"""Meso2D desktop application entry point.
 
-"""
-Version created to test code refactoring
-Worker class moved to a separate file and imported here
+Starts the PyQt5 interface, lets the user choose an aggregate morphology,
+and connects the main window to the simulation and project services.
+
+Run from the project root with: ``python Meso2d.py``.
 """
 import json
 import traceback
 from src.ui.Main03_EN import Ui_MainWindow
 from src.ui.Main_inicio_EN import Ui_MainWindow as Menuinicio
 from src.ui.GV_EN import MiGraphicsView
-# from Worker import WorkerTodos
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal, QObject, QThread, QFileInfo, Qt, QDate, QPropertyAnimation, QPointF
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog, QTableWidget, QTableWidgetItem, QVBoxLayout
@@ -141,6 +134,7 @@ class About(QtWidgets.QLabel):
 
 
 class mainProgram(QMainWindow, Ui_MainWindow):
+    """Main window for configuring and running a selected morphology."""
 
     def __init__(self, mode):
         super(mainProgram, self).__init__()
@@ -414,6 +408,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
             self.open()
 
     def open(self):
+        """Load a user-selected project file and populate the form."""
         name, _ = QtWidgets.QFileDialog.getOpenFileName(None, self.tr("filedialog.open_project"), '*.txt')
         if name == "":
             return
@@ -489,6 +484,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.log(self.tr("log.project.new"), color=self.blueColor)
 
     def load_example(self):
+        """Choose an example project and apply its parameters to the form."""
         examples_dir = Path(__file__).resolve().parent / "docs" / "examples"
         example_path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
@@ -628,6 +624,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.a_GuardarI.setEnabled(True)
 
     def run(self):
+        """Read the form, validate inputs, and start or replace the current structure."""
         if self.existe_structure:
             choice = QMessageBox.information(
                 None,
@@ -654,6 +651,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
             self.existe_structure = True
 
     def comprobar_data_para_worker(self):
+        """Start a simulation only when every required parameter is available."""
         self.data_necesarios = [self.sieve_size, self.tpp, self.x, self.y, self.Pagg, self.Pporos, self.dporo_min,
                                  self.dporo_max, self.r_react, self.dpto_max_aggregates, self.dpto_min_aggregates,
                                  self.dpto_max_pasta, self.dpto_min_pasta, self.Ppto_react_aggregates,
@@ -667,7 +665,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
             self.simulate()
 
     def simulate(self):
-
+        """Apply seed and feature options, then delegate the run to the controller."""
         if self.cb_seed.isChecked():
             np.random.seed(self.seed)
         else:
@@ -745,6 +743,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
             self.seed = None
 
     def update(self):
+        """Read widget values and recompute derived areas and gradation data."""
         if self.le_seed.text():
             self.seed = int(self.le_seed.text())
         if self.le_y.text():
@@ -880,6 +879,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
     """
 
     def exportar_structure(self):
+        """Export the current geometry in the format selected by the user."""
         if self.mode not in ("circulos", "ellipses", "poligonos"):
             QtWidgets.QMessageBox.warning(self, self.tr("dialog.undefined_mode"), self.tr("dialog.export.mode_required"))
             return
@@ -1062,6 +1062,7 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.log(self.tr("log.image.saved"), color=self.blueColor)
 
     def open_tutorial_pdf(self):
+        """Open the tutorial for the active language, falling back to the other PDF."""
         tutorial_dir = Path(__file__).resolve().parent / "docs" / "tutorial"
         if self.i18n.language == "es":
             primary_pdf = tutorial_dir / "Meso2D_user_tutorial.pdf"
