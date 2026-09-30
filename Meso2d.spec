@@ -9,7 +9,7 @@ a = Analysis(
         ('C:/Users/48560330Q/AppData/Local/miniconda3/Library/bin/ffi-8.dll', '.'),
         ('C:/Users/48560330Q/AppData/Local/miniconda3/Library/bin/libmpdec-4.dll', '.'),
     ],
-    datas=[('docs', 'docs'), ('proyecto_ejemplo2.txt', '.')],
+    datas=[('docs', 'docs')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

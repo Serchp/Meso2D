@@ -58,11 +58,11 @@ python Meso2d.py
 With the dependencies installed, you can generate a first structure in about 30 seconds:
 
 1. Run `python Meso2d.py` and choose **Circles**, **Ellipses**, or **Polygons**.
-2. Select **File > Open Project** and open the example for that mode, such as `example_circles.txt`.
+2. Select **File > Load Example**. The file picker opens `docs/examples`; choose the example for that mode, such as `example_circles.txt`.
 3. For a lightweight test, uncheck **Pores** and **Reactive points**.
 4. Click **Run** to generate and view the structure.
 
-The examples include a random seed, and loading one automatically enables the pore and reactive-point options when their parameters are set. Leave them enabled to try a more complete structure; runtime depends on your hardware and selected options. The `.txt` files are project configurations containing JSON data, not geometry exports.
+The examples are stored in `docs/examples`. They include a random seed, and loading one automatically enables the pore and reactive-point options when their parameters are set. Leave them enabled to try a more complete structure; runtime depends on your hardware and selected options. The `.txt` files are project configurations containing JSON data, not geometry exports.
 
 ## Screenshots
 
@@ -94,5 +94,9 @@ You can also save the view as an image. JSON exports contain the generated geome
 
 ## Documentation
 
-- [Spanish user tutorial](docs/Meso2D_user_tutorial.pdf)
-- [English user tutorial](docs/Meso2D_user_tutorial_EN.pdf)
+- [Spanish user tutorial](docs/tutorial/Meso2D_user_tutorial.pdf)
+- [English user tutorial](docs/tutorial/Meso2D_user_tutorial_EN.pdf)
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for the full text.

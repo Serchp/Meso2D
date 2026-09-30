@@ -58,11 +58,11 @@ python Meso2d.py
 Con las dependencias ya instaladas, puedes obtener una primera estructura en unos 30 segundos:
 
 1. Ejecuta `python Meso2d.py` y elige **Circles**, **Ellipses** o **Polygons**.
-2. En **File > Open Project**, abre el ejemplo que corresponde al modo, por ejemplo `example_circles.txt`.
+2. En **File > Load Example**, el selector se abre en `docs/examples`; elige el ejemplo del modo, por ejemplo `example_circles.txt`.
 3. Para una prueba ligera, desmarca **Pores** y **Reactive points**.
 4. Pulsa **Run** para generar y visualizar la estructura.
 
-Los ejemplos incluyen una semilla y cargan sus opciones de poros y puntos automáticamente. Déjalas activadas para probar una estructura más completa; la duración depende del equipo y de las opciones elegidas. Los archivos `.txt` son configuraciones de proyecto con contenido JSON; no son exportaciones de geometría.
+Los ejemplos están en `docs/examples`, incluyen una semilla y cargan sus opciones de poros y puntos automáticamente. Déjalas activadas para probar una estructura más completa; la duración depende del equipo y de las opciones elegidas. Los archivos `.txt` son configuraciones de proyecto con contenido JSON; no son exportaciones de geometría.
 
 ## Capturas
 
@@ -94,5 +94,9 @@ También puedes guardar la vista como imagen. La exportación JSON contiene la g
 
 ## Documentación
 
-- [Tutorial en español](docs/Meso2D_user_tutorial.pdf)
-- [Tutorial en inglés](docs/Meso2D_user_tutorial_EN.pdf)
+- [Tutorial en español](docs/tutorial/Meso2D_user_tutorial.pdf)
+- [Tutorial en inglés](docs/tutorial/Meso2D_user_tutorial_EN.pdf)
+
+## Licencia
+
+Este proyecto se distribuye bajo la Licencia MIT. Consulta [LICENSE](LICENSE) para leer el texto completo.

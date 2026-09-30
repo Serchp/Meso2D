@@ -489,26 +489,18 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.log(self.tr("log.project.new"), color=self.blueColor)
 
     def load_example(self):
-        # Keep backward compatibility with the original Spanish example filenames.
-        candidates = ["proyecto_ejemplo2.txt", "project_example2.txt", "project_ejemplo2.txt"]
-        example_path = None
-        for name in candidates:
-            p = Path(name)
-            if p.exists():
-                example_path = p
-                break
-
-        if example_path is None:
-            QtWidgets.QMessageBox.warning(
-                self,
-                self.tr("dialog.example_not_found.title"),
-                self.tr("dialog.example_not_found.body"),
-            )
+        examples_dir = Path(__file__).resolve().parent / "docs" / "examples"
+        example_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            self.tr("action.load_example"),
+            str(examples_dir),
+            "Project files (*.txt)",
+        )
+        if not example_path:
             return
 
         with open(example_path, encoding="utf-8") as f:
-            data = f.read()
-            js = json.loads(data)
+            js = json.load(f)
             self.update_data(js)
             self.llenar_data()
         self.log(self.tr("log.example.loaded"), color=self.blueColor)
@@ -1070,13 +1062,13 @@ class mainProgram(QMainWindow, Ui_MainWindow):
         self.log(self.tr("log.image.saved"), color=self.blueColor)
 
     def open_tutorial_pdf(self):
-        docs_dir = Path(__file__).resolve().parent / "docs"
+        tutorial_dir = Path(__file__).resolve().parent / "docs" / "tutorial"
         if self.i18n.language == "es":
-            primary_pdf = docs_dir / "Meso2D_user_tutorial.pdf"
-            fallback_pdf = docs_dir / "Meso2D_user_tutorial_EN.pdf"
+            primary_pdf = tutorial_dir / "Meso2D_user_tutorial.pdf"
+            fallback_pdf = tutorial_dir / "Meso2D_user_tutorial_EN.pdf"
         else:
-            primary_pdf = docs_dir / "Meso2D_user_tutorial_EN.pdf"
-            fallback_pdf = docs_dir / "Meso2D_user_tutorial.pdf"
+            primary_pdf = tutorial_dir / "Meso2D_user_tutorial_EN.pdf"
+            fallback_pdf = tutorial_dir / "Meso2D_user_tutorial.pdf"
 
         tutorial_path = primary_pdf if primary_pdf.exists() else fallback_pdf
         if not tutorial_path.exists():
